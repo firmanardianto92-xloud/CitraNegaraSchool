@@ -1,0 +1,228 @@
+{
+  "project_name": "LMS Citra Negara - Sistem Pembelajaran & Administrasi Terpadu",
+  "theme": {
+    "default_mode": "light",
+    "tone": "Modern, Professional, Prestigious Academic (Khas Sekolah Indonesia Berkarakter)",
+    "aesthetic_fusion": "Modern Swiss grid discipline + Indonesian prestigious institutional warmth (Deep Sapphire Navy, Warm Gold, Forest Emerald accents) + Linear-grade tactile command panels"
+  },
+  "fonts": {
+    "heading": "Plus Jakarta Sans Variable",
+    "body": "Plus Jakarta Sans Variable",
+    "mono": "IBM Plex Mono",
+    "css_import": "@import \"@fontsource-variable/plus-jakarta-sans\";\n@import \"@fontsource/ibm-plex-mono\";",
+    "css_vars": {
+      "--font-heading": "'Plus Jakarta Sans Variable', -apple-system, BlinkMacSystemFont, sans-serif",
+      "--font-sans": "'Plus Jakarta Sans Variable', -apple-system, BlinkMacSystemFont, sans-serif",
+      "--font-mono": "'IBM Plex Mono', monospace"
+    }
+  },
+  "colors": {
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#F8FAFC",
+        "on_bg": "#0F172A",
+        "on_bg_muted": "#64748B",
+        "roles": {
+          "link": "#1D4ED8",
+          "error": "#DC2626",
+          "success": "#15803D",
+          "warning": "#B45309"
+        }
+      },
+      {
+        "name": "card_panel",
+        "kind": "solid",
+        "bg": "#FFFFFF",
+        "on_bg": "#0F172A",
+        "on_bg_muted": "#64748B",
+        "roles": {
+          "border": "#E2E8F0",
+          "highlight": "#EFF6FF"
+        }
+      },
+      {
+        "name": "sidebar_nav",
+        "kind": "solid",
+        "bg": "#0A192F",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#94A3B8",
+        "roles": {
+          "active_tab": "#1E3A8A",
+          "active_indicator": "#F59E0B",
+          "hover_bg": "#1E293B"
+        }
+      },
+      {
+        "name": "hero_banner",
+        "kind": "gradient",
+        "contrast_against": "#0A192F",
+        "guarantee": "scrim: linear-gradient(135deg, #0A192F 0%, #1E3A8A 60%, #172554 100%)",
+        "on_bg": "#FFFFFF",
+        "on_bg_muted": "#CBD5E1",
+        "roles": {
+          "badge_gold": "#FEF3C7",
+          "badge_gold_text": "#92400E"
+        }
+      },
+      {
+        "name": "assistant_chat_panel",
+        "kind": "solid",
+        "bg": "#FFFFFF",
+        "on_bg": "#0F172A",
+        "on_bg_muted": "#64748B",
+        "roles": {
+          "bot_bubble_bg": "#F1F5F9",
+          "bot_bubble_text": "#0F172A",
+          "user_bubble_bg": "#1E3A8A",
+          "user_bubble_text": "#FFFFFF"
+        }
+      },
+      {
+        "name": "badge_success",
+        "kind": "solid",
+        "bg": "#DCFCE7",
+        "on_bg": "#15803D",
+        "on_bg_muted": "#166534"
+      },
+      {
+        "name": "badge_pending",
+        "kind": "solid",
+        "bg": "#FEF3C7",
+        "on_bg": "#B45309",
+        "on_bg_muted": "#92400E"
+      },
+      {
+        "name": "badge_urgent",
+        "kind": "solid",
+        "bg": "#FEE2E2",
+        "on_bg": "#B91C1C",
+        "on_bg_muted": "#991B1B"
+      }
+    ],
+    "accent": "#F59E0B",
+    "on_accent": "#78350F",
+    "primary": "#1E3A8A",
+    "on_primary": "#FFFFFF",
+    "secondary": "#059669",
+    "on_secondary": "#FFFFFF"
+  },
+  "typography": {
+    "scale_px": {
+      "display": 56,
+      "h1": 40,
+      "h2": 32,
+      "h3": 24,
+      "h4": 18,
+      "body": 16,
+      "caption": 14
+    },
+    "rules": {
+      "headings_tracking": "tracking-tight",
+      "overlines": "text-xs uppercase tracking-wider font-semibold",
+      "body_line_height": "leading-relaxed"
+    }
+  },
+  "entry_surfaces": {
+    "/": "Institutional hero portal with quick role switcher demo login (Siswa, Guru, Admin), campus stats, and announcements banner",
+    "/login": "Branded split auth: Left panel showcasing Citra Negara heritage and values, right panel with quick demo-role login and credentials",
+    "/dashboard": "Role-aware modular command grid with urgent academic tasks, class schedule, and quick shortcuts",
+    "/ppdb": "Multi-step PPDB 2026 admissions workflow with admission status tracker, document requirements, and booking fee overview",
+    "/materi-tugas": "Bento academic repository for documents, digital modules, exam papers, and interactive student submissions",
+    "/pembayaran": "Financial ledger with downloadable invoice statements, instant Stripe/VA checkout, and itemized booking/registration breakdown",
+    "/mentoring": "1-on-1 and group mentoring scheduling hub, reflective notes log, and teacher feedback timeline",
+    "/ai-assistant": "CitraBot AI Academic Assistant panel with context-aware Indonesian responses for lesson summaries, math solutions, and PPDB FAQ"
+  },
+  "layouts": {
+    "global_shell": "App layout with sticky sidebar on desktop (collapsed on mobile via Sheet), top persistent header with global search, role indicator badge, notification bell, AI Assistant quick trigger, and quick role toggle",
+    "grid_modes": {
+      "dashboard_bento": "grid grid-cols-1 md:grid-cols-12 gap-6 with hero stats spanning 8 cols and urgent timeline spanning 4 cols",
+      "course_grid": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6",
+      "mentoring_calendar": "grid grid-cols-1 lg:grid-cols-12 gap-6 (calendar 7 cols, upcoming notes/slots 5 cols)"
+    }
+  },
+  "motion": {
+    "reduced_motion": "Wrap non-essential spring animations in MotionConfig or respect prefers-reduced-motion",
+    "preset_transitions": {
+      "card_hover": "transition: transform 0.2s ease, box-shadow 0.2s ease",
+      "button_press": "active:scale-[0.98] transition-transform duration-100",
+      "stagger_fade_in": "staggered 0.05s opacity and translateY(6px)"
+    }
+  },
+  "image_urls": {
+    "hero_school": {
+      "url": "https://images.unsplash.com/photo-1564981797816-1043664bf78d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBzY2hvb2wlMjBjYW1wdXMlMjBidWlsZGluZyUyMGxpYnJhcnklMjBlZHVjYXRpb258ZW58MHx8fHwxNzg5MDM5OTUwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Perpustakaan & Gedung Utama SMK / SMA Citra Negara",
+      "usage": "Landing page hero, PPDB banner, and login background side panel"
+    },
+    "students_classroom": {
+      "url": "https://images.unsplash.com/photo-1759922378123-a1f4f1e39bae?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHxpbmRvbmVzaWFuJTIwaGlnaCUyMHNjaG9vbCUyMHN0dWRlbnRzJTIwbGVhcm5pbmclMjBjbGFzc3Jvb218ZW58MHx8fHwxNzg5MDM5OTUwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Siswa-siswi Citra Negara dalam kegiatan belajar interaktif",
+      "usage": "Dashboard overview, PPDB testimoni & aktivitas sekolah"
+    },
+    "teacher_mentoring": {
+      "url": "https://images.unsplash.com/photo-1664382953647-5c6c76dd63b9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHw0fHx0ZWFjaGVyJTIwbWVudG9yaW5nJTIwc3R1ZGVudCUyMGVkdWNhdGlvbiUyMGRpc2N1c3Npb258ZW58MHx8fHwxNzg5MDM5OTUwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Sesi Mentoring Akademik & Karir Guru-Siswa",
+      "usage": "Halaman Mentoring, konseling BK, dan bimbingan tugas akhir"
+    },
+    "library_interior": {
+      "url": "https://images.unsplash.com/photo-1552890143-884bbdbb8b54?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjBzY2hvb2wlMjBjYW1wdXMlMjBidWlsZGluZyUyMGxpYnJhcnklMjBlZHVjYXRpb258ZW58MHx8fHwxNzg5MDM5OTUwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Pusat Sumber Belajar & Digital Repository",
+      "usage": "Halaman Dokumen & Materi Pembelajaran"
+    }
+  },
+  "key_features_specification": {
+    "role_management": {
+      "roles": ["siswa", "guru", "admin"],
+      "demo_switcher": "Instant one-click demo role selector in the navbar with pre-filled mock credentials (Ahmad Fauzi - Siswa, Ibu Sri Wahyuni - Guru, Pak Hendra - Admin PPDB & Keuangan)",
+      "permissions": "Admin has full PPDB verification + fee management; Guru manages class docs, tasks grading, mentoring logs; Siswa submits tasks, books mentoring, checks invoices, asks AI"
+    },
+    "materi_dan_dokumen": {
+      "structure": "Kategori: Materi Pelajaran (PDF/Slides/Video links), Tugas & Ujian (due date, submission dropzone, score badge), Dokumen Resmi (Surat Keterangan, Kurikulum Merdeka, Kalender Akademik)",
+      "features": "Filter by mata pelajaran, search dokumen, status pengumpulan (Selesai/Belum/Terlambat), download file simulator, feedback nilai guru"
+    },
+    "ppdb_dan_pembayaran": {
+      "ppdb_flow": "1. Isi Biodata & Pilihan Jurusan/Program -> 2. Upload Berkas (KK, Ijazah, Rapor) -> 3. Pembayaran Biaya Pendaftaran & Booking Seat -> 4. Tes Pemetaan & Verifikasi -> 5. Pengumuman Kelulusan",
+      "billing_breakdown": [
+        "Biaya Formulir & Pendaftaran PPDB (Rp 250.000)",
+        "Biaya Booking Kursi / Uang Pangkal Awal (Rp 1.500.000)",
+        "SPP Bulanan / Iuran Pembelajaran (Rp 650.000)",
+        "Seragam & Buku Paket Digital (Rp 1.200.000)"
+      ],
+      "payment_actions": "Checkout simulator with Stripe / Virtual Account / QRIS receipt generation and downloadable invoice PDF format"
+    },
+    "mentoring_system": {
+      "features": "Daftar Mentor Guru & Konselor BK, Pilih Jadwal Slot Kosong, Form Topik Konsultasi (Akademik, Karir, Pribadi), Riwayat Sesi & Catatan Tindak Lanjut Mentor"
+    },
+    "chatbot_ai_assistant": {
+      "name": "CitraBot AI",
+      "role": "Asisten Akademik & Layanan Citra Negara",
+      "quick_prompts": [
+        "Jelaskan ringkasan materi Hukum Newton Fisika",
+        "Apa saja syarat dokumen pendaftaran PPDB 2026?",
+        "Bagaimana cara mengajukan keringanan biaya SPP?",
+        "Buatkan jadwal belajar efektif untuk persiapan Ujian"
+      ],
+      "capabilities": "Smart Indonesian educational tutoring, PPDB FAQ solver, task schedule recommendation, with simulated instant stream response"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Build the app in React 19 + Tailwind v4 using JavaScript (.jsx). Ensure all routes are declared cleanly in App.jsx.",
+    "Implement the 3 demo user roles (Siswa, Guru, Admin) accessible via quick-switch toggle buttons on the topbar or login screen.",
+    "Use Indonesian language across all UI elements ('Tugas', 'Materi', 'Pembayaran SPP & PPDB', 'Mentoring', 'Jadwal Kelas', 'Asisten AI').",
+    "Include rich pre-seeded data for Citra Negara: realistic courses (Matematika, Bahasa Indonesia, Rekayasa Perangkat Lunak, IPA, Sejarah), tasks with due dates, payment records with invoice downloads, and mentoring sessions.",
+    "For payments: implement a comprehensive list of school fees (Biaya Registrasi, Booking Sekolah, SPP, Seragam), checkout dialog simulator, status badges (Lunas, Menunggu Pembayaran), and invoice view.",
+    "For PPDB: include a multi-step registration wizard, document upload simulation, status verification for Admin, and student registration tracking.",
+    "For Mentoring: include booking calendar/slot picker, meeting link generator, and mentor private notes.",
+    "For AI Assistant: implement an interactive floating or docked panel with pre-crafted school-specific prompts and realistic streaming educational responses in Bahasa Indonesia.",
+    "Ensure all buttons, inputs, tabs, and critical status badges have data-testid attributes (e.g. data-testid='role-switch-guru', data-testid='ppdb-submit-button', data-testid='pay-booking-fee-button', data-testid='ai-chat-send').",
+    "Avoid generic raw tables—use clean card containers with 1px border (#E2E8F0), subtle hover lifts, clear status badges, and generous spacing (p-6, gap-6)."
+  ],
+  "accessibility": {
+    "wcag_level": "WCAG 2.2 AA",
+    "min_contrast_ratio": "4.5:1 for regular text, 3:1 for large display headers",
+    "keyboard_nav": "Ensure dialogs, dropdowns, and tablists are fully navigable with Tab/Arrow keys",
+    "focus_ring": "focus:ring-2 focus:ring-blue-600 focus:outline-none"
+  }
+}

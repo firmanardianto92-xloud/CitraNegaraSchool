@@ -20,6 +20,11 @@ Kata sandi semua akun demo: `citra123`.
 - **Admin**: konfigurasi jenjang + jurusan + tarif; izin publikasi guru; review sosmed; verifikasi PPDB; bisa membuka Kelas Saya untuk guru mana pun (dropdown pilih guru).
 
 ## Wali kelas & KKM
+### Pembatasan akses nilai (penting)
+Guru **hanya** boleh melihat & mengisi nilai siswa yang dia ampu (`users.homeroom_teacher_id == guru.id`):
+- Dropdown siswa di halaman Rapor memakai `/users?role=siswa&homeroom_teacher_id={user.id}` untuk role guru, dan `/users?role=siswa` (semua) hanya untuk admin.
+- Backend menjaga lewat `_pastikan_boleh_mengampu()` di `grades.py`: `GET /grades/lembar/{id}?guru_id=` dan `POST /grades/batch` membalas **403** bila siswa bukan asuhannya. Admin dikecualikan.
+
 ### Pengisian rapor (mode mudah)
 `components/LembarRaporDialog.jsx` + `GET /grades/lembar/{student_id}` + `POST /grades/batch`.
 Guru pilih siswa → seluruh mapel sesuai jurusan/jenjang otomatis terdaftar (MAPEL_BY_JURUSAN / MAPEL_BY_LEVEL di grades.py),

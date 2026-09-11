@@ -251,12 +251,27 @@ async def export_kelas(teacher_id: str):
     )
 
 
+async def _pastikan_boleh_mengampu(siswa: dict, guru_id: Optional[str]) -> None:
+    """Guru hanya boleh membuka/mengisi nilai siswa di kelas yang dia ampu. Admin bebas."""
+    if not guru_id:
+        return
+    guru = await db.users.find_one({"id": guru_id})
+    if not guru or guru.get("role") == "admin":
+        return
+    if siswa.get("homeroom_teacher_id") != guru_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"{siswa['name']} bukan siswa kelas Anda — Anda hanya dapat mengisi nilai siswa yang Anda ampu",
+        )
+
+
 @router.get("/lembar/{student_id}", response_model=LembarRapor)
-async def lembar(student_id: str, semester: Optional[str] = None):
+async def lembar(student_id: str, semester: Optional[str] = None, guru_id: Optional[str] = None):
     """Lembar pengisian rapor: semua mapel siswa sudah terdaftar + nilai lama terisi otomatis."""
     siswa = await db.users.find_one({"id": student_id, "role": "siswa"})
     if not siswa:
         raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+    await _pastikan_boleh_mengampu(siswa, guru_id)
 
     sem = semester or CURRENT_SEMESTER
     existing_rows = await db.grades.find({"student_id": student_id, "semester": sem}).to_list(100)
@@ -301,6 +316,7 @@ async def batch_grades(payload: BatchGradeCreate):
     siswa = await db.users.find_one({"id": payload.student_id, "role": "siswa"})
     if not siswa:
         raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+    await _pastikan_boleh_mengampu(siswa, payload.guru_id)
 
     sem = payload.semester or CURRENT_SEMESTER
     tersimpan: List[Grade] = []

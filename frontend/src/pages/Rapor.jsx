@@ -24,8 +24,15 @@ const PREDIKAT_CLASS = {
 export default function Rapor() {
   const { data: user } = useCurrentUser();
   const isSiswa = user?.role === "siswa";
+  const isGuru = user?.role === "guru";
 
-  const students = useQuery({ queryKey: ["users", "siswa"], queryFn: () => apiGet("/users?role=siswa") });
+  // Guru hanya boleh melihat & mengisi siswa yang dia ampu; admin melihat semua.
+  const students = useQuery({
+    queryKey: ["users", "siswa", isGuru ? user?.id : "semua"],
+    queryFn: () =>
+      apiGet(isGuru ? `/users?role=siswa&homeroom_teacher_id=${user.id}` : "/users?role=siswa"),
+    enabled: Boolean(user) && !isSiswa,
+  });
   const studentList = students.data ?? [];
   const [selected, setSelected] = useState("");
   const studentId = isSiswa ? user?.id : selected || studentList[0]?.id;

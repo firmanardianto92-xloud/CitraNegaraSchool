@@ -52,9 +52,11 @@ export default function LembarRaporDialog({ students, defaultStudentId, onSaved 
   }, [defaultStudentId]);
 
   const lembar = useQuery({
-    queryKey: ["lembar", studentId],
-    queryFn: () => apiGet(`/grades/lembar/${studentId}`),
-    enabled: Boolean(studentId),
+    queryKey: ["lembar", studentId, user?.id],
+    queryFn: () =>
+      apiGet(`/grades/lembar/${studentId}${user?.id ? `?guru_id=${user.id}` : ""}`),
+    enabled: Boolean(studentId) && open,
+    retry: false,
   });
 
   // Prefill draft dari nilai yang sudah ada

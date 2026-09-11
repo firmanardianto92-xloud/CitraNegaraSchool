@@ -1,0 +1,55 @@
+{
+  "passed": 6,
+  "failed": 0,
+  "bugs": [],
+  "action_items": [],
+  "retest_needed": false,
+  "checks": [
+    {
+      "criterion": "Dropdown 'Pilih Siswa' di halaman Rapor Nilai hanya menampilkan siswa yang diampu guru login (IPA/IPS/Bahasa masing-masing 10 nama)",
+      "name": "rapor-dropdown-scoped-to-ipa-teacher",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Login ipa@citranegara.sch.id -> Rapor Nilai -> rapor-student-select menampilkan tepat 10 siswa XI IPA 1 (Adinda Maharani...Joko Wicaksono); tidak ada Kevin Saputra/Ulfa Khoirunnisa dkk."
+    },
+    {
+      "criterion": "Dropdown siswa DALAM dialog 'Isi Rapor' juga ikut terfilter",
+      "name": "grade-dialog-dropdown-scoped-to-ipa-teacher",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Dialog grade-student-select untuk ipa@ menampilkan tepat 10 siswa XI IPA 1 yang sama, tanpa siswa IPS/Bahasa."
+    },
+    {
+      "criterion": "Guru tetap bisa mengisi & menyimpan nilai siswa asuhannya sendiri lewat lembar rapor",
+      "name": "ips-teacher-fills-and-saves-grade",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "ips@citranegara.sch.id mengisi Matematika tugas=90 ujian=80 untuk Kevin Saputra -> lembar-akhir-matematika=84, lembar-predikat-matematika=B; grade-save-button menutup dialog dan rapor-table menampilkan Matematika 84."
+    },
+    {
+      "criterion": "Backend menolak guru yang mencoba mengakses/menyimpan nilai siswa kelas lain (proteksi API langsung)",
+      "name": "test_tscheck_grades_role_scoping.py",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /grades/lembar/u-ips-1?guru_id=u-guru-ipa -> 403; GET /grades/lembar/u-ipa-1?guru_id=u-guru-bahasa -> 403; POST /grades/batch {student_id:u-ipa-1, guru_id:u-guru-ips,...} -> 403 dan nilai_akhir Matematika u-ipa-1 tetap 82.4; GET /grades/lembar/u-ipa-3?guru_id=u-guru-ipa -> 200. 6/6 pytest passed."
+    },
+    {
+      "criterion": "Admin tetap dapat melihat semua siswa dan mengisi nilai siapa pun (tidak ikut dibatasi)",
+      "name": "admin-sees-all-34-students-in-rapor",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Login admin@citranegara.sch.id -> Rapor -> dropdown memuat >=34 opsi termasuk siswa IPA/IPS/Bahasa (Adinda Maharani, Kevin Saputra, Ulfa Khoirunnisa terdeteksi bersamaan). GET /grades/lembar/u-ipa-1?guru_id=u-admin-1 -> 200 (dicek via test backend & curl)."
+    },
+    {
+      "criterion": "Halaman 'Kelas Saya' tetap hanya menampilkan 10 siswa yang diampu (tidak boleh regresi)",
+      "name": "kelas-saya-shows-only-ipa-students",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "ipa@citranegara.sch.id -> Kelas Saya menampilkan tepat 10 baris kelas-row-*, semua siswa XI IPA 1 (Adinda Maharani hadir, Kevin Saputra/Ulfa Khoirunnisa dkk tidak ada)."
+    }
+  ],
+  "notes": [
+    "ips-teacher-fills-and-saves-grade menulis nilai Matematika baru untuk siswa seed Kevin Saputra (u-ips-1) karena kriteria mengharuskan pengujian pengisian nilai siswa asuhan nyata; tidak ada mekanisme membuat siswa fixture baru di domain ini, jadi mutasi data seed pada baris ini tidak terhindarkan dan disengaja sesuai kriteria pengujian.",
+    "Semua 6 kriteria acceptance_matrix telah diuji: 5 via browser check dan 1 (proteksi API langsung) via backend pytest, dengan cross-check admin (kriteria 5) juga divalidasi lewat curl backend."
+  ]
+}

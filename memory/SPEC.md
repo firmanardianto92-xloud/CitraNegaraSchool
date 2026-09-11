@@ -15,9 +15,18 @@ Kata sandi semua akun demo: `citra123`.
 - admin@citranegara.sch.id — Pak Hendra (admin, `u-admin-1`)
 
 ## Aturan peran
-- **Guru**: publikasikan materi/tugas dengan target jenjang + jurusan + pilih siswa tertentu; ajukan publikasi sosmed (hanya jika `can_publish`); input nilai rapor. Guru tanpa izin → 403 saat POST /documents & /social/posts.
-- **Siswa (sekaligus portal orang tua)**: hanya melihat dokumen yang ditujukan padanya (target_student_ids berisi id-nya, atau jenjang/jurusan cocok, atau tanpa target); tagihan hanya miliknya (payer_ref); kwitansi; rapor nilai sendiri.
-- **Admin**: konfigurasi jenjang (SD/SMP/SMA/SMK) + jurusan + tarif 4 biaya; izin publikasi guru; review pengajuan sosmed; verifikasi PPDB.
+- **Guru**: publikasikan materi/tugas dengan target jenjang + jurusan + pilih siswa tertentu; ajukan publikasi sosmed (hanya jika `can_publish`); input nilai rapor; halaman **Kelas Saya** (`/kelas-saya`) berisi rekap 10 siswa yang diampu + penanda nilai merah. **Guru TIDAK melihat data keuangan sama sekali** — nav Admission & Pembayaran dan PPDB disembunyikan, query tagihan/PPDB dimatikan (`enabled: !isGuru`), dan kartu "Tagihan Sekolah" di dashboard diganti "Siswa Perlu Perhatian". Guru tanpa izin → 403 saat POST /documents & /social/posts.
+- **Siswa (sekaligus portal orang tua)**: hanya melihat dokumen yang ditujukan padanya; tagihan hanya miliknya (payer_ref); kwitansi; rapor nilai sendiri.
+- **Admin**: konfigurasi jenjang + jurusan + tarif; izin publikasi guru; review sosmed; verifikasi PPDB; bisa membuka Kelas Saya untuk guru mana pun (dropdown pilih guru).
+
+## Wali kelas & KKM
+KKM = 75 (`backend/routers/grades.py`). Nilai akhir < 75 = "nilai merah".
+Siswa terhubung ke guru via `users.homeroom_teacher_id`.
+| Guru | id | Kelas | Mata pelajaran |
+|---|---|---|---|
+| Pak Dedi Kurniawan | u-guru-ipa | XI IPA 1 | Matematika, PPKN, B. Indonesia, B. Inggris, Kesenian, Fisika, Kimia, Biologi |
+| Ibu Maya Lestari | u-guru-ips | XI IPS 1 | 5 mapel umum + Ekonomi, Sosiologi, Geografi, Sejarah |
+| Ibu Anisa Fitri | u-guru-bahasa | XI Bahasa 1 | 5 mapel umum + Sastra Indonesia, B. Jepang, B. Arab, Antropologi |
 
 ## Jenjang & tarif (collection `levels`)
 | code | jurusan | registrasi | booking | spp | seragam |
@@ -39,13 +48,14 @@ payment_transactions, levels, grades, social_posts.
 - /ppdb/registrations (GET, POST — tagihan admission otomatis sesuai tarif jenjang), PATCH /{id}
 - /payments/fees?level=, /payments/invoices?payer_ref=&kategori=, POST /payments/invoices, /payments/checkout,
   /payments/status/{session_id}, GET /payments/invoices/{id}/receipt (400 bila belum lunas), /webhook/stripe
-- /grades (GET, POST), /grades/rapor/{student_id}, PATCH /grades/{id} — nilai akhir = 40% tugas + 60% ujian
+- /grades (GET, POST), /grades/rapor/{student_id}, /grades/kelas/{teacher_id} (rekap kelas + jumlah_merah/tuntas), PATCH /grades/{id} — nilai akhir = 40% tugas + 60% ujian
+- /users?role=&level=&jurusan=&homeroom_teacher_id=
 - /social/posts (GET, POST), PATCH /social/posts/{id} (disetujui|ditolak|terpublikasi)
 - /mentoring/mentors, /mentoring/sessions, PATCH /sessions/{id}
 - /chat (POST) & /chat/history/{session_id} — Claude Sonnet 4.5 via EMERGENT_LLM_KEY
 
 ## Halaman
-/, /login, /dashboard, /materi-tugas, /ppdb, /pembayaran (tab Admission vs Pembayaran Sekolah),
+/, /login, /dashboard, /materi-tugas, /kelas-saya (guru & admin), /ppdb, /pembayaran (tab Admission vs Pembayaran Sekolah),
 /kwitansi/:invoiceId, /rapor, /mentoring, /ai-assistant, /admin (khusus admin),
 /payment/success, /payment/cancel
 

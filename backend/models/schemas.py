@@ -47,6 +47,7 @@ class User(BaseModel):
     jurusan: Optional[str] = None
     nama_orang_tua: Optional[str] = None
     can_publish: bool = False  # guru: izin publikasi materi & pengajuan sosmed
+    homeroom_teacher_id: Optional[str] = None  # siswa: guru wali yang mengampu
 
 
 class LoginRequest(BaseModel):
@@ -167,6 +168,31 @@ class GradeUpdate(BaseModel):
     nilai_tugas: Optional[float] = None
     nilai_ujian: Optional[float] = None
     catatan: Optional[str] = None
+
+
+class KelasStudentRow(BaseModel):
+    student_id: str
+    student_name: str
+    kelas: str = ""
+    jurusan: str = ""
+    rata_rata: float = 0
+    predikat: str = "-"
+    jumlah_mapel: int = 0
+    jumlah_merah: int = 0
+    tuntas: bool = True
+    grades: List["Grade"] = []
+
+
+class KelasSummary(BaseModel):
+    teacher_id: str
+    teacher_name: str
+    kelas: str = ""
+    jurusan: str = ""
+    kkm: float = 75
+    jumlah_siswa: int = 0
+    rata_rata_kelas: float = 0
+    siswa_bermasalah: int = 0
+    students: List[KelasStudentRow] = []
 
 
 class RaporSummary(BaseModel):

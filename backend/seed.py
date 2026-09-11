@@ -27,25 +27,81 @@ LEVELS = [
 USERS = [
     User(id="u-siswa-1", name="Ahmad Fauzi", email="siswa@citranegara.sch.id", role="siswa",
          kelas="XI RPL 1", avatar_initials="AF", level="smk", jurusan="RPL",
-         nama_orang_tua="Bapak Sutrisno Fauzi"),
+         nama_orang_tua="Bapak Sutrisno Fauzi", homeroom_teacher_id="u-guru-1"),
     User(id="u-siswa-2", name="Nadia Rahma", email="nadia@citranegara.sch.id", role="siswa",
          kelas="XI IPA 2", avatar_initials="NR", level="sma", jurusan="IPA",
-         nama_orang_tua="Ibu Ratna Dewi"),
+         nama_orang_tua="Ibu Ratna Dewi", homeroom_teacher_id="u-guru-1"),
     User(id="u-siswa-3", name="Fajar Nugroho", email="fajar@citranegara.sch.id", role="siswa",
          kelas="VIII B", avatar_initials="FN", level="smp",
-         nama_orang_tua="Bapak Agus Nugroho"),
+         nama_orang_tua="Bapak Agus Nugroho", homeroom_teacher_id="u-guru-1"),
     User(id="u-siswa-4", name="Kayla Zahra", email="kayla@citranegara.sch.id", role="siswa",
          kelas="V A", avatar_initials="KZ", level="sd",
-         nama_orang_tua="Ibu Siti Kamila"),
+         nama_orang_tua="Ibu Siti Kamila", homeroom_teacher_id="u-guru-1"),
     User(id="u-guru-1", name="Ibu Sri Wahyuni", email="guru@citranegara.sch.id", role="guru",
-         kelas="Wali Kelas XI RPL 1", avatar_initials="SW", can_publish=True),
+         kelas="Wali Kelas XI RPL 1", avatar_initials="SW", jurusan="RPL", can_publish=True),
     User(id="u-guru-2", name="Pak Budi Santoso", email="budi@citranegara.sch.id", role="guru",
          kelas="Guru Produktif RPL", avatar_initials="BS", can_publish=True),
     User(id="u-guru-3", name="Ibu Rina Kartika", email="rina@citranegara.sch.id", role="guru",
          kelas="Konselor BK & Sejarah", avatar_initials="RK", can_publish=False),
+    User(id="u-guru-ipa", name="Pak Dedi Kurniawan", email="ipa@citranegara.sch.id", role="guru",
+         kelas="Wali Kelas XI IPA 1", avatar_initials="DK", level="sma", jurusan="IPA", can_publish=True),
+    User(id="u-guru-ips", name="Ibu Maya Lestari", email="ips@citranegara.sch.id", role="guru",
+         kelas="Wali Kelas XI IPS 1", avatar_initials="ML", level="sma", jurusan="IPS", can_publish=True),
+    User(id="u-guru-bahasa", name="Ibu Anisa Fitri", email="bahasa@citranegara.sch.id", role="guru",
+         kelas="Wali Kelas XI Bahasa 1", avatar_initials="AF", level="sma", jurusan="Bahasa", can_publish=True),
     User(id="u-admin-1", name="Pak Hendra", email="admin@citranegara.sch.id", role="admin",
          kelas="Admin PPDB & Keuangan", avatar_initials="HD"),
 ]
+
+# ---- 3 guru wali kelas × 10 siswa, mata pelajaran sesuai jurusan ----
+MAPEL_UMUM = ["Matematika", "PPKN", "Bahasa Indonesia", "Bahasa Inggris", "Kesenian"]
+JURUSAN_KELAS = {
+    "IPA": {
+        "teacher_id": "u-guru-ipa",
+        "kelas": "XI IPA 1",
+        "mapel": MAPEL_UMUM + ["Fisika", "Kimia", "Biologi"],
+        "nama": ["Adinda Maharani", "Bagas Prakoso", "Cindy Oktaviani", "Dimas Aryaputra", "Elsa Nurhaliza",
+                 "Farhan Maulana", "Gita Permatasari", "Hafiz Ramadhan", "Intan Puspita", "Joko Wicaksono"],
+    },
+    "IPS": {
+        "teacher_id": "u-guru-ips",
+        "kelas": "XI IPS 1",
+        "mapel": MAPEL_UMUM + ["Ekonomi", "Sosiologi", "Geografi", "Sejarah"],
+        "nama": ["Kevin Saputra", "Laila Ramadhani", "Maulana Yusuf", "Nabila Syifa", "Oki Firmansyah",
+                 "Putri Ayu Lestari", "Qori Hidayat", "Rangga Pratomo", "Sabrina Amelia", "Taufik Hidayat"],
+    },
+    "Bahasa": {
+        "teacher_id": "u-guru-bahasa",
+        "kelas": "XI Bahasa 1",
+        "mapel": MAPEL_UMUM + ["Sastra Indonesia", "Bahasa Jepang", "Bahasa Arab", "Antropologi"],
+        "nama": ["Ulfa Khoirunnisa", "Vino Bastian Aji", "Wulan Sari Dewi", "Xena Alodia", "Yusuf Abdullah",
+                 "Zahra Alifia", "Andini Pratiwi", "Bima Sakti Nugraha", "Clara Wijaya", "Denis Setiawan"],
+    },
+}
+
+
+def _build_kelas_users() -> list:
+    out = []
+    for jurusan, cfg in JURUSAN_KELAS.items():
+        slug = jurusan.lower()
+        for idx, nama in enumerate(cfg["nama"], start=1):
+            initials = "".join(w[0] for w in nama.split()[:2]).upper()
+            out.append(User(
+                id=f"u-{slug}-{idx}",
+                name=nama,
+                email=f"{slug}{idx}@citranegara.sch.id",
+                role="siswa",
+                kelas=cfg["kelas"],
+                avatar_initials=initials,
+                level="sma",
+                jurusan=jurusan,
+                nama_orang_tua=f"Orang tua {nama.split()[0]}",
+                homeroom_teacher_id=cfg["teacher_id"],
+            ))
+    return out
+
+
+KELAS_USERS = _build_kelas_users()
 
 MENTORS = [
     Mentor(id="m-1", name="Ibu Sri Wahyuni", bidang="Matematika & Persiapan Ujian", role="Guru",
@@ -168,7 +224,7 @@ async def main():
     await ensure_indexes()
 
     await db.levels.insert_many([lv.model_dump() for lv in LEVELS])
-    await db.users.insert_many([u.model_dump() for u in USERS])
+    await db.users.insert_many([u.model_dump() for u in USERS + KELAS_USERS])
     await db.mentors.insert_many([m.model_dump() for m in MENTORS])
     await db.documents.insert_many([d.model_dump() for d in DOCUMENTS])
     await db.ppdb.insert_many([p.model_dump() for p in PPDB])
@@ -180,6 +236,32 @@ async def main():
         grades.append(Grade(student_id=sid, student_name=sname, subject=subject, nilai_tugas=tugas,
                             nilai_ujian=ujian, nilai_akhir=akhir, predikat=_predikat(akhir),
                             catatan=catatan, guru=guru).model_dump())
+
+    # Nilai 10 siswa per kelas (IPA/IPS/Bahasa) — sengaja beragam agar ada nilai merah (<75).
+    rng = random.Random(20260101)
+    CATATAN_BAIK = ["Konsisten dan teliti.", "Aktif bertanya di kelas.", "Pemahaman konsep sangat baik.",
+                    "Tugas selalu dikumpulkan tepat waktu."]
+    CATATAN_MERAH = ["Perlu pendampingan tambahan.", "Banyak tugas belum dikumpulkan.",
+                     "Disarankan mengikuti remedial.", "Perlu memperkuat dasar materi."]
+    guru_nama = {u.id: u.name for u in USERS}
+
+    for jurusan, cfg in JURUSAN_KELAS.items():
+        guru_label = guru_nama[cfg["teacher_id"]]
+        for idx, nama in enumerate(cfg["nama"], start=1):
+            sid = f"u-{jurusan.lower()}-{idx}"
+            # 3 siswa pertama tiap kelas diberi beberapa nilai merah, sisanya mayoritas tuntas.
+            rawan = idx <= 3
+            for subject in cfg["mapel"]:
+                if rawan and rng.random() < 0.45:
+                    tugas, ujian = rng.randint(50, 70), rng.randint(48, 72)
+                else:
+                    tugas, ujian = rng.randint(76, 98), rng.randint(74, 97)
+                akhir = round(tugas * 0.4 + ujian * 0.6, 1)
+                catatan = rng.choice(CATATAN_MERAH if akhir < 75 else CATATAN_BAIK)
+                grades.append(Grade(student_id=sid, student_name=nama, subject=subject,
+                                    nilai_tugas=tugas, nilai_ujian=ujian, nilai_akhir=akhir,
+                                    predikat=_predikat(akhir), catatan=catatan,
+                                    guru=guru_label).model_dump())
     await db.grades.insert_many(grades)
 
     fee_meta = {
@@ -238,7 +320,8 @@ async def main():
                          meeting_link="https://meet.citranegara.sch.id/119284", status="terjadwal"),
     ]
     await db.mentoring_sessions.insert_many([s.model_dump() for s in sessions])
-    print(f"Seed selesai: {len(LEVELS)} jenjang, {len(USERS)} user, {len(DOCUMENTS)} dokumen, "
+    print(f"Seed selesai: {len(LEVELS)} jenjang, {len(USERS) + len(KELAS_USERS)} user "
+          f"({len(KELAS_USERS)} siswa kelas IPA/IPS/Bahasa), {len(DOCUMENTS)} dokumen, "
           f"{len(grades)} nilai, {len(invoices)} invoice, {len(SOCIAL)} pengajuan sosmed.")
 
 

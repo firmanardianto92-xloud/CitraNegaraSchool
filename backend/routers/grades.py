@@ -5,9 +5,13 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 
 from lib.db import db
-from models.schemas import Grade, GradeCreate, GradeUpdate, RaporSummary
+from models.schemas import (
+    Grade, GradeCreate, GradeUpdate, KelasStudentRow, KelasSummary, RaporSummary,
+)
 
 router = APIRouter(prefix="/grades", tags=["grades"])
+
+KKM = 75  # nilai di bawah ini dihitung sebagai "nilai merah"
 
 
 def _predikat(nilai: float) -> str:
@@ -62,6 +66,47 @@ async def rapor(student_id: str):
         predikat=_predikat(rata),
         jumlah_mapel=len(grades),
         grades=grades,
+    )
+
+
+@router.get("/kelas/{teacher_id}", response_model=KelasSummary)
+async def kelas(teacher_id: str):
+    """Rekap nilai seluruh siswa yang diampu seorang guru, termasuk penanda nilai merah."""
+    guru = await db.users.find_one({"id": teacher_id, "role": {"$in": ["guru", "admin"]}})
+    if not guru:
+        raise HTTPException(status_code=404, detail="Guru tidak ditemukan")
+
+    siswa = await db.users.find({"role": "siswa", "homeroom_teacher_id": teacher_id}).sort("name", 1).to_list(200)
+    rows: List[KelasStudentRow] = []
+    for s in siswa:
+        g_rows = await db.grades.find({"student_id": s["id"]}).sort("subject", 1).to_list(100)
+        grades = [Grade(**g) for g in g_rows]
+        merah = [g for g in grades if g.nilai_akhir < KKM]
+        rata = round(sum(g.nilai_akhir for g in grades) / len(grades), 1) if grades else 0
+        rows.append(KelasStudentRow(
+            student_id=s["id"],
+            student_name=s["name"],
+            kelas=s.get("kelas") or "",
+            jurusan=s.get("jurusan") or "",
+            rata_rata=rata,
+            predikat=_predikat(rata) if grades else "-",
+            jumlah_mapel=len(grades),
+            jumlah_merah=len(merah),
+            tuntas=len(merah) == 0,
+            grades=grades,
+        ))
+
+    rata_kelas = round(sum(r.rata_rata for r in rows) / len(rows), 1) if rows else 0
+    return KelasSummary(
+        teacher_id=teacher_id,
+        teacher_name=guru["name"],
+        kelas=guru.get("kelas") or "",
+        jurusan=guru.get("jurusan") or "",
+        kkm=KKM,
+        jumlah_siswa=len(rows),
+        rata_rata_kelas=rata_kelas,
+        siswa_bermasalah=len([r for r in rows if not r.tuntas]),
+        students=rows,
     )
 
 

@@ -9,6 +9,7 @@ import {
   Menu,
   Settings2,
   Users,
+  Users2,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,9 @@ import { useCurrentUser, useLogout } from "@/lib/session";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
   { to: "/materi-tugas", label: "Materi & Tugas", icon: BookOpen, testid: "nav-materi" },
-  { to: "/ppdb", label: "PPDB 2026", icon: GraduationCap, testid: "nav-ppdb" },
-  { to: "/pembayaran", label: "Admission & Pembayaran", icon: Wallet, testid: "nav-pembayaran" },
+  { to: "/kelas-saya", label: "Kelas Saya", icon: Users2, testid: "nav-kelas", roles: ["guru", "admin"] },
+  { to: "/ppdb", label: "PPDB 2026", icon: GraduationCap, testid: "nav-ppdb", roles: ["siswa", "admin"] },
+  { to: "/pembayaran", label: "Admission & Pembayaran", icon: Wallet, testid: "nav-pembayaran", roles: ["siswa", "admin"] },
   { to: "/rapor", label: "Rapor Nilai", icon: Award, testid: "nav-rapor" },
   { to: "/mentoring", label: "Mentoring", icon: Users, testid: "nav-mentoring" },
   { to: "/ai-assistant", label: "CitraBot AI", icon: Bot, testid: "nav-assistant" },

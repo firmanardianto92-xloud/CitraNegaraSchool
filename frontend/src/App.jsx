@@ -6,8 +6,11 @@ import Dashboard from "@/pages/Dashboard";
 import MateriTugas from "@/pages/MateriTugas";
 import Ppdb from "@/pages/Ppdb";
 import Pembayaran from "@/pages/Pembayaran";
+import Kwitansi from "@/pages/Kwitansi";
+import Rapor from "@/pages/Rapor";
 import Mentoring from "@/pages/Mentoring";
 import Assistant from "@/pages/Assistant";
+import Admin from "@/pages/Admin";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 
@@ -21,12 +24,15 @@ export default function App() {
         <Route path="/materi-tugas" element={<MateriTugas />} />
         <Route path="/ppdb" element={<Ppdb />} />
         <Route path="/pembayaran" element={<Pembayaran />} />
+        <Route path="/kwitansi/:invoiceId" element={<Kwitansi />} />
+        <Route path="/rapor" element={<Rapor />} />
         <Route path="/mentoring" element={<Mentoring />} />
         <Route path="/ai-assistant" element={<Assistant />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/cancel" element={<PaymentCancel />} />
       </Routes>
-      <Toaster position="top-right" richColors />
+      <Toaster position="bottom-right" richColors />
     </>
   );
 }

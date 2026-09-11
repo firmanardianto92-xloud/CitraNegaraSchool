@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, FileText, GraduationCap, Wallet } from "lucide-react";
+import { ArrowUpRight, Award, CalendarClock, FileText, GraduationCap, Wallet } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +10,26 @@ import { STATUS_CLASS, STATUS_LABEL, rupiah, tanggal } from "@/lib/format";
 
 export default function Dashboard() {
   const { data: user } = useCurrentUser();
-  const tugas = useQuery({ queryKey: ["documents", "tugas"], queryFn: () => apiGet("/documents?type=tugas") });
-  const invoices = useQuery({ queryKey: ["invoices", "all"], queryFn: () => apiGet("/payments/invoices") });
+  const isSiswa = user?.role === "siswa";
+
+  const tugas = useQuery({
+    queryKey: ["documents", "tugas", user?.id, isSiswa],
+    queryFn: () => apiGet(`/documents?type=tugas${isSiswa && user?.id ? `&student_id=${user.id}` : ""}`),
+  });
+  const invoices = useQuery({
+    queryKey: ["invoices", "dashboard", user?.id],
+    queryFn: () => apiGet(`/payments/invoices${isSiswa && user?.id ? `?payer_ref=${user.id}` : ""}`),
+  });
   const ppdb = useQuery({ queryKey: ["ppdb", "all"], queryFn: () => apiGet("/ppdb/registrations") });
-  const sesi = useQuery({ queryKey: ["mentoring", "all"], queryFn: () => apiGet("/mentoring/sessions") });
+  const sesi = useQuery({
+    queryKey: ["mentoring", "dashboard", user?.id],
+    queryFn: () => apiGet(`/mentoring/sessions${isSiswa && user?.id ? `?student_id=${user.id}` : ""}`),
+  });
+  const rapor = useQuery({
+    queryKey: ["rapor", user?.id],
+    queryFn: () => apiGet(`/grades/rapor/${user.id}`),
+    enabled: Boolean(isSiswa && user?.id),
+  });
 
   const tugasList = tugas.data ?? [];
   const invoiceList = invoices.data ?? [];
@@ -23,14 +39,20 @@ export default function Dashboard() {
   const stats = [
     { label: "Tugas Aktif", value: tugasList.length, icon: FileText, testid: "stat-tugas" },
     { label: "Tagihan Belum Lunas", value: rupiah(totalTagihan), icon: Wallet, testid: "stat-tagihan" },
-    { label: "Pendaftar PPDB", value: (ppdb.data ?? []).length, icon: GraduationCap, testid: "stat-ppdb" },
+    isSiswa
+      ? { label: "Rata-rata Rapor", value: rapor.data?.rata_rata ?? 0, icon: Award, testid: "stat-rapor" }
+      : { label: "Pendaftar PPDB", value: (ppdb.data ?? []).length, icon: GraduationCap, testid: "stat-ppdb" },
     { label: "Sesi Mentoring", value: (sesi.data ?? []).length, icon: CalendarClock, testid: "stat-mentoring" },
   ];
 
   return (
     <AppShell
       title={`Halo, ${user?.name ?? "Tamu"}`}
-      subtitle={user ? `${user.role.toUpperCase()} · ${user.kelas ?? "Citra Negara"}` : "Masuk untuk melihat data pribadi"}
+      subtitle={
+        user
+          ? `${user.role.toUpperCase()} · ${user.kelas ?? "Citra Negara"}${user.level ? ` · ${user.level.toUpperCase()}${user.jurusan ? ` ${user.jurusan}` : ""}` : ""}`
+          : "Masuk untuk melihat data pribadi"
+      }
     >
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, testid }) => (
@@ -52,7 +74,9 @@ export default function Dashboard() {
         <Card className="border-[#E2E8F0] lg:col-span-7">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading text-lg font-bold">Tugas & Tenggat Terdekat</h2>
+              <h2 className="font-heading text-lg font-bold">
+                {isSiswa ? "Tugas dari Guru Anda" : "Tugas & Tenggat Terdekat"}
+              </h2>
               <Link to="/materi-tugas" className="inline-flex items-center gap-1 text-sm font-semibold text-[#1D4ED8]" data-testid="dashboard-materi-link">
                 Lihat semua <ArrowUpRight className="h-4 w-4" />
               </Link>

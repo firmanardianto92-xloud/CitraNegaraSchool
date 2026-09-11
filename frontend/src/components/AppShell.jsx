@@ -1,11 +1,13 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
+  Award,
   BookOpen,
   Bot,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings2,
   Users,
   Wallet,
 } from "lucide-react";
@@ -18,15 +20,18 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
   { to: "/materi-tugas", label: "Materi & Tugas", icon: BookOpen, testid: "nav-materi" },
   { to: "/ppdb", label: "PPDB 2026", icon: GraduationCap, testid: "nav-ppdb" },
-  { to: "/pembayaran", label: "Pembayaran", icon: Wallet, testid: "nav-pembayaran" },
+  { to: "/pembayaran", label: "Admission & Pembayaran", icon: Wallet, testid: "nav-pembayaran" },
+  { to: "/rapor", label: "Rapor Nilai", icon: Award, testid: "nav-rapor" },
   { to: "/mentoring", label: "Mentoring", icon: Users, testid: "nav-mentoring" },
   { to: "/ai-assistant", label: "CitraBot AI", icon: Bot, testid: "nav-assistant" },
+  { to: "/admin", label: "Konfigurasi", icon: Settings2, testid: "nav-admin", roles: ["admin"] },
 ];
 
-function NavList({ onNavigate }) {
+function NavList({ onNavigate, role }) {
+  const items = NAV.filter((n) => !n.roles || (role && n.roles.includes(role)));
   return (
     <nav className="flex flex-col gap-1 px-3">
-      {NAV.map(({ to, label, icon: Icon, testid }) => (
+      {items.map(({ to, label, icon: Icon, testid }) => (
         <NavLink
           key={to}
           to={to}
@@ -76,7 +81,7 @@ export default function AppShell({ title, subtitle, action, children }) {
     <div className="min-h-screen bg-[#F8FAFC]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-[#0A192F] lg:flex">
         <Brand />
-        <NavList />
+        <NavList role={user?.role} />
         <div className="mt-auto p-4">
           <div className="rounded-xl bg-[#1E293B] p-4">
             <p className="text-xs text-slate-400">Butuh bantuan cepat?</p>
@@ -104,7 +109,7 @@ export default function AppShell({ title, subtitle, action, children }) {
               />
               <SheetContent side="left" className="w-72 border-none bg-[#0A192F] p-0">
                 <Brand />
-                <NavList />
+                <NavList role={user?.role} />
               </SheetContent>
             </Sheet>
 

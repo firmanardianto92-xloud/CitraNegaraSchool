@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { useLogin } from "@/lib/session";
 
 const DEMO = [
-  { role: "siswa", label: "Siswa — Ahmad Fauzi", email: "siswa@citranegara.sch.id" },
-  { role: "guru", label: "Guru — Ibu Sri Wahyuni", email: "guru@citranegara.sch.id" },
-  { role: "admin", label: "Admin — Pak Hendra", email: "admin@citranegara.sch.id" },
+  { role: "siswa", label: "Siswa/Orang Tua — Ahmad Fauzi (SMK RPL)", email: "siswa@citranegara.sch.id" },
+  { role: "guru", label: "Guru — Ibu Sri Wahyuni (boleh publikasi)", email: "guru@citranegara.sch.id" },
+  { role: "admin", label: "Admin — Pak Hendra (konfigurasi sekolah)", email: "admin@citranegara.sch.id" },
 ];
 const PASSWORD = "citra123";
 

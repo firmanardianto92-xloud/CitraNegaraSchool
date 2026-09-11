@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +15,27 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# ---------- auth ----------
+# ---------- jenjang & konfigurasi ----------
+class Level(BaseModel):
+    code: str  # sd | smp | sma | smk
+    name: str
+    jurusan: List[str] = []
+    fees: Dict[str, float] = {}  # registrasi | booking | spp | seragam
+    sample_note: str = ""
+
+
+class LevelUpdate(BaseModel):
+    name: Optional[str] = None
+    jurusan: Optional[List[str]] = None
+    fees: Optional[Dict[str, float]] = None
+    sample_note: Optional[str] = None
+
+
+class PublishPermission(BaseModel):
+    can_publish: bool
+
+
+# ---------- auth / users ----------
 class User(BaseModel):
     id: str = Field(default_factory=_uid)
     name: str
@@ -23,6 +43,10 @@ class User(BaseModel):
     role: str  # siswa | guru | admin
     kelas: Optional[str] = None
     avatar_initials: str = ""
+    level: Optional[str] = None  # sd | smp | sma | smk
+    jurusan: Optional[str] = None
+    nama_orang_tua: Optional[str] = None
+    can_publish: bool = False  # guru: izin publikasi materi & pengajuan sosmed
 
 
 class LoginRequest(BaseModel):
@@ -40,6 +64,10 @@ class Document(BaseModel):
     file_url: str = ""
     due_date: Optional[str] = None
     created_by: str = "Admin Sekolah"
+    created_by_id: str = ""
+    target_level: Optional[str] = None
+    target_jurusan: Optional[str] = None
+    target_student_ids: List[str] = []
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -51,6 +79,10 @@ class DocumentCreate(BaseModel):
     file_url: str = ""
     due_date: Optional[str] = None
     created_by: str = "Guru"
+    created_by_id: str = ""
+    target_level: Optional[str] = None
+    target_jurusan: Optional[str] = None
+    target_student_ids: List[str] = []
 
 
 class Submission(BaseModel):
@@ -72,6 +104,81 @@ class SubmissionCreate(BaseModel):
     note: str = ""
 
 
+# ---------- publikasi sosial media ----------
+class SocialPost(BaseModel):
+    id: str = Field(default_factory=_uid)
+    document_id: Optional[str] = None
+    judul: str
+    caption: str
+    image_url: str = ""
+    platform: str = "instagram"  # instagram | facebook
+    status: str = "diajukan"  # diajukan | disetujui | ditolak | terpublikasi
+    diajukan_oleh: str
+    diajukan_oleh_id: str = ""
+    catatan_review: str = ""
+    direview_oleh: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class SocialPostCreate(BaseModel):
+    document_id: Optional[str] = None
+    judul: str
+    caption: str
+    image_url: str = ""
+    platform: str = "instagram"
+    diajukan_oleh: str
+    diajukan_oleh_id: str = ""
+
+
+class SocialPostReview(BaseModel):
+    status: str  # disetujui | ditolak | terpublikasi
+    catatan_review: str = ""
+    direview_oleh: str = ""
+
+
+# ---------- rapor nilai ----------
+class Grade(BaseModel):
+    id: str = Field(default_factory=_uid)
+    student_id: str
+    student_name: str
+    subject: str
+    semester: str = "Semester 1 - 2025/2026"
+    nilai_tugas: float = 0
+    nilai_ujian: float = 0
+    nilai_akhir: float = 0
+    predikat: str = "C"
+    catatan: str = ""
+    guru: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class GradeCreate(BaseModel):
+    student_id: str
+    student_name: str
+    subject: str
+    semester: str = "Semester 1 - 2025/2026"
+    nilai_tugas: float = 0
+    nilai_ujian: float = 0
+    catatan: str = ""
+    guru: str = ""
+
+
+class GradeUpdate(BaseModel):
+    nilai_tugas: Optional[float] = None
+    nilai_ujian: Optional[float] = None
+    catatan: Optional[str] = None
+
+
+class RaporSummary(BaseModel):
+    student_id: str
+    student_name: str
+    semester: str
+    rata_rata: float
+    predikat: str
+    jumlah_mapel: int
+    grades: List[Grade]
+
+
 # ---------- ppdb ----------
 class PpdbRegistration(BaseModel):
     id: str = Field(default_factory=_uid)
@@ -79,12 +186,13 @@ class PpdbRegistration(BaseModel):
     nama_lengkap: str
     nisn: str
     asal_sekolah: str
-    program: str
+    level: str = "smp"
+    program: str = ""
     email: str
     telepon: str
     alamat: str = ""
     berkas_url: str = ""
-    status: str = "menunggu_verifikasi"  # menunggu_verifikasi | diverifikasi | diterima | ditolak
+    status: str = "menunggu_verifikasi"
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -92,7 +200,8 @@ class PpdbCreate(BaseModel):
     nama_lengkap: str
     nisn: str
     asal_sekolah: str
-    program: str
+    level: str = "smp"
+    program: str = ""
     email: str
     telepon: str
     alamat: str = ""
@@ -110,6 +219,8 @@ class Fee(BaseModel):
     amount: float
     description: str = ""
     mandatory: bool = True
+    level: str = ""
+    level_name: str = ""
 
 
 class Invoice(BaseModel):
@@ -119,11 +230,36 @@ class Invoice(BaseModel):
     fee_name: str
     amount: float
     payer_name: str
-    payer_ref: str = ""  # registration id or student id
-    status: str = "belum_bayar"  # belum_bayar | menunggu | lunas
+    payer_ref: str = ""
+    level: str = ""
+    jurusan: str = ""
+    kategori: str = "sekolah"  # admission | sekolah
+    status: str = "belum_bayar"
     session_id: Optional[str] = None
     due_date: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    receipt_no: Optional[str] = None
     created_at: datetime = Field(default_factory=_now)
+
+
+class InvoiceCreate(BaseModel):
+    fee_code: str
+    payer_name: str
+    payer_ref: str = ""
+    level: str = "smp"
+    jurusan: str = ""
+    kategori: str = "sekolah"
+
+
+class Receipt(BaseModel):
+    receipt_no: str
+    invoice_no: str
+    fee_name: str
+    amount: float
+    payer_name: str
+    level_name: str = ""
+    paid_at: Optional[datetime] = None
+    metode: str = "Kartu Kredit/Debit (Stripe)"
 
 
 class CheckoutRequest(BaseModel):
@@ -163,7 +299,7 @@ class MentoringSession(BaseModel):
     jadwal: str
     catatan_mentor: str = ""
     meeting_link: str = ""
-    status: str = "terjadwal"  # terjadwal | selesai | dibatalkan
+    status: str = "terjadwal"
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -190,6 +326,6 @@ class ChatRequest(BaseModel):
 class ChatMessage(BaseModel):
     id: str = Field(default_factory=_uid)
     session_id: str
-    role: str  # user | assistant
+    role: str
     content: str
     created_at: datetime = Field(default_factory=_now)

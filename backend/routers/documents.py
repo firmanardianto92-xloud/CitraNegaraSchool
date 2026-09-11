@@ -9,7 +9,13 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 @router.get("", response_model=List[Document])
-async def list_documents(type: Optional[str] = None, subject: Optional[str] = None, q: Optional[str] = None):
+async def list_documents(
+    type: Optional[str] = None,
+    subject: Optional[str] = None,
+    q: Optional[str] = None,
+    student_id: Optional[str] = None,
+    created_by_id: Optional[str] = None,
+):
     query = {}
     if type:
         query["type"] = type
@@ -17,12 +23,39 @@ async def list_documents(type: Optional[str] = None, subject: Optional[str] = No
         query["subject"] = subject
     if q:
         query["title"] = {"$regex": q, "$options": "i"}
+    if created_by_id:
+        query["created_by_id"] = created_by_id
+
+    # Seorang siswa hanya melihat materi/tugas yang ditujukan padanya:
+    # dipilih langsung namanya, atau ditujukan ke jenjang/jurusannya, atau untuk semua.
+    if student_id:
+        siswa = await db.users.find_one({"id": student_id})
+        if not siswa:
+            raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+        query["$or"] = [
+            {"target_student_ids": student_id},
+            {
+                "target_student_ids": {"$size": 0},
+                "$and": [
+                    {"$or": [{"target_level": None}, {"target_level": ""}, {"target_level": siswa.get("level")}]},
+                    {"$or": [{"target_jurusan": None}, {"target_jurusan": ""}, {"target_jurusan": siswa.get("jurusan")}]},
+                ],
+            },
+        ]
+
     docs = await db.documents.find(query).sort("created_at", -1).to_list(500)
     return [Document(**d) for d in docs]
 
 
 @router.post("", response_model=Document)
 async def create_document(payload: DocumentCreate):
+    if payload.created_by_id:
+        guru = await db.users.find_one({"id": payload.created_by_id})
+        if guru and guru.get("role") == "guru" and not guru.get("can_publish", False):
+            raise HTTPException(
+                status_code=403,
+                detail="Guru ini belum diberi izin publikasi materi oleh admin",
+            )
     doc = Document(**payload.model_dump())
     await db.documents.insert_one(doc.model_dump())
     return doc

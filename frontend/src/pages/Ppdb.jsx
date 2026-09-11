@@ -14,27 +14,32 @@ import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useCurrentUser } from "@/lib/session";
 import { STATUS_CLASS, STATUS_LABEL, rupiah, tanggal } from "@/lib/format";
 
-const PROGRAM = ["Rekayasa Perangkat Lunak", "IPA", "IPS", "Multimedia", "Akuntansi"];
 const LANGKAH = [
-  "Isi biodata & pilih program",
+  "Isi biodata & pilih jenjang/jurusan",
   "Unggah berkas (KK, Ijazah, Rapor)",
   "Bayar biaya pendaftaran & booking kursi",
   "Tes pemetaan & verifikasi berkas",
   "Pengumuman kelulusan PPDB",
 ];
-const BIAYA_AWAL = [
-  { nama: "Biaya Formulir & Pendaftaran PPDB", jumlah: 250000 },
-  { nama: "Biaya Booking Kursi / Uang Pangkal Awal", jumlah: 1500000 },
-];
+const BIAYA_LABEL = { registrasi: "Biaya Formulir & Pendaftaran PPDB", booking: "Biaya Booking Kursi / Uang Pangkal Awal" };
 
 export default function Ppdb() {
   const qc = useQueryClient();
   const { data: user } = useCurrentUser();
   const isAdmin = user?.role === "admin";
   const [form, setForm] = useState({
-    nama_lengkap: "", nisn: "", asal_sekolah: "", program: PROGRAM[0],
+    nama_lengkap: "", nisn: "", asal_sekolah: "", level: "smk", program: "",
     email: "", telepon: "", alamat: "", berkas_url: "",
   });
+
+  const levels = useQuery({ queryKey: ["levels"], queryFn: () => apiGet("/admin/levels") });
+  const levelList = levels.data ?? [];
+  const activeLevel = levelList.find((l) => l.code === form.level);
+  const jurusanOptions = activeLevel?.jurusan ?? [];
+  const biayaAwal = [
+    { code: "registrasi", jumlah: activeLevel?.fees?.registrasi },
+    { code: "booking", jumlah: activeLevel?.fees?.booking },
+  ];
 
   const regs = useQuery({ queryKey: ["ppdb", "list"], queryFn: () => apiGet("/ppdb/registrations") });
 
@@ -44,7 +49,7 @@ export default function Ppdb() {
       qc.invalidateQueries({ queryKey: ["ppdb"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
       toast.success(`Pendaftaran terkirim. Nomor: ${reg.nomor_pendaftaran}`);
-      setForm({ nama_lengkap: "", nisn: "", asal_sekolah: "", program: PROGRAM[0], email: "", telepon: "", alamat: "", berkas_url: "" });
+      setForm({ nama_lengkap: "", nisn: "", asal_sekolah: "", level: "smk", program: "", email: "", telepon: "", alamat: "", berkas_url: "" });
     },
     onError: (e) => toast.error(e?.body?.detail?.[0]?.msg || e?.body?.detail || "Gagal mengirim pendaftaran"),
   });
@@ -90,15 +95,34 @@ export default function Ppdb() {
                 <Input id="p-asal" required value={form.asal_sekolah} onChange={(e) => setForm({ ...form, asal_sekolah: e.target.value })} data-testid="ppdb-asal-input" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="p-program">Program / Jurusan</Label>
-                <Select value={form.program} onValueChange={(v) => setForm({ ...form, program: String(v) })}>
-                  <SelectTrigger id="p-program" data-testid="ppdb-program-select">
-                    <SelectValue>{(v) => v}</SelectValue>
+                <Label htmlFor="p-level">Jenjang</Label>
+                <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: String(v), program: "" })}>
+                  <SelectTrigger id="p-level" data-testid="ppdb-level-select">
+                    <SelectValue>
+                      {(v) => levelList.find((l) => l.code === String(v))?.name || String(v).toUpperCase()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {PROGRAM.map((p) => (
-                      <SelectItem key={p} value={p} data-testid={`ppdb-program-option-${p.split(" ")[0].toLowerCase()}`}>{p}</SelectItem>
+                    {levelList.map((l) => (
+                      <SelectItem key={l.code} value={l.code} data-testid={`ppdb-level-option-${l.code}`}>{l.name}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="p-program">Jurusan / Program</Label>
+                <Select value={form.program} onValueChange={(v) => setForm({ ...form, program: String(v) })}>
+                  <SelectTrigger id="p-program" data-testid="ppdb-program-select">
+                    <SelectValue>{(v) => String(v || "") || "Tanpa jurusan"}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jurusanOptions.length === 0 ? (
+                      <SelectItem value="" data-testid="ppdb-program-option-none">Tanpa jurusan</SelectItem>
+                    ) : (
+                      jurusanOptions.map((p) => (
+                        <SelectItem key={p} value={p} data-testid={`ppdb-program-option-${p.toLowerCase()}`}>{p}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -145,11 +169,12 @@ export default function Ppdb() {
           <Card className="border-[#E2E8F0]">
             <CardContent className="p-6">
               <h2 className="font-heading text-lg font-bold">Biaya Awal PPDB</h2>
-              <div className="mt-4 space-y-3">
-                {BIAYA_AWAL.map((b) => (
-                  <div key={b.nama} className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] p-4">
-                    <p className="text-sm">{b.nama}</p>
-                    <p className="font-mono text-sm font-semibold">{rupiah(b.jumlah)}</p>
+              <p className="mt-1 text-xs text-[#64748B]">Mengikuti tarif jenjang {activeLevel?.name ?? "-"}</p>
+              <div className="mt-4 space-y-3" data-testid="ppdb-biaya-awal">
+                {biayaAwal.map((b) => (
+                  <div key={b.code} className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] p-4">
+                    <p className="text-sm">{BIAYA_LABEL[b.code]}</p>
+                    <p className="font-mono text-sm font-semibold" data-testid={`ppdb-biaya-${b.code}`}>{rupiah(b.jumlah)}</p>
                   </div>
                 ))}
               </div>
@@ -174,7 +199,7 @@ export default function Ppdb() {
                     <div>
                       <p className="font-semibold">{r.nama_lengkap}</p>
                       <p className="font-mono text-xs text-[#64748B]">
-                        {r.nomor_pendaftaran} · NISN {r.nisn} · {r.program}
+                        {r.nomor_pendaftaran} · NISN {r.nisn} · {r.level?.toUpperCase()}{r.program ? ` ${r.program}` : ""}
                       </p>
                       <p className="text-xs text-[#64748B]">{r.asal_sekolah} · {tanggal(r.created_at)}</p>
                     </div>

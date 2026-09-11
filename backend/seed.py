@@ -5,13 +5,44 @@ import random
 from datetime import datetime, timedelta, timezone
 
 from lib.db import db, ensure_indexes
-from models.schemas import Document, Invoice, Mentor, MentoringSession, PpdbRegistration, User
+from models.schemas import (
+    Document, Grade, Invoice, Level, Mentor, MentoringSession, PpdbRegistration, SocialPost, User,
+)
+
+LEVELS = [
+    Level(code="sd", name="SD - Sekolah Dasar", jurusan=[],
+          fees={"registrasi": 200000, "booking": 1200000, "spp": 450000, "seragam": 900000},
+          sample_note="Contoh: siswa kelas 1 SD membayar registrasi Rp 200.000 + booking Rp 1.200.000."),
+    Level(code="smp", name="SMP - Sekolah Menengah Pertama", jurusan=[],
+          fees={"registrasi": 250000, "booking": 1500000, "spp": 600000, "seragam": 1000000},
+          sample_note="Contoh: siswa kelas 7 SMP membayar registrasi Rp 250.000 + booking Rp 1.500.000."),
+    Level(code="sma", name="SMA - Sekolah Menengah Atas", jurusan=["IPA", "IPS", "Bahasa"],
+          fees={"registrasi": 300000, "booking": 2000000, "spp": 750000, "seragam": 1200000},
+          sample_note="Contoh: siswa SMA jurusan IPA membayar registrasi Rp 300.000 + booking Rp 2.000.000."),
+    Level(code="smk", name="SMK - Sekolah Menengah Kejuruan", jurusan=["RPL", "Multimedia", "Akuntansi", "TKJ"],
+          fees={"registrasi": 300000, "booking": 2250000, "spp": 800000, "seragam": 1350000},
+          sample_note="Contoh: siswa SMK jurusan RPL membayar registrasi Rp 300.000 + booking Rp 2.250.000."),
+]
 
 USERS = [
     User(id="u-siswa-1", name="Ahmad Fauzi", email="siswa@citranegara.sch.id", role="siswa",
-         kelas="XI RPL 1", avatar_initials="AF"),
+         kelas="XI RPL 1", avatar_initials="AF", level="smk", jurusan="RPL",
+         nama_orang_tua="Bapak Sutrisno Fauzi"),
+    User(id="u-siswa-2", name="Nadia Rahma", email="nadia@citranegara.sch.id", role="siswa",
+         kelas="XI IPA 2", avatar_initials="NR", level="sma", jurusan="IPA",
+         nama_orang_tua="Ibu Ratna Dewi"),
+    User(id="u-siswa-3", name="Fajar Nugroho", email="fajar@citranegara.sch.id", role="siswa",
+         kelas="VIII B", avatar_initials="FN", level="smp",
+         nama_orang_tua="Bapak Agus Nugroho"),
+    User(id="u-siswa-4", name="Kayla Zahra", email="kayla@citranegara.sch.id", role="siswa",
+         kelas="V A", avatar_initials="KZ", level="sd",
+         nama_orang_tua="Ibu Siti Kamila"),
     User(id="u-guru-1", name="Ibu Sri Wahyuni", email="guru@citranegara.sch.id", role="guru",
-         kelas="Wali Kelas XI RPL 1", avatar_initials="SW"),
+         kelas="Wali Kelas XI RPL 1", avatar_initials="SW", can_publish=True),
+    User(id="u-guru-2", name="Pak Budi Santoso", email="budi@citranegara.sch.id", role="guru",
+         kelas="Guru Produktif RPL", avatar_initials="BS", can_publish=True),
+    User(id="u-guru-3", name="Ibu Rina Kartika", email="rina@citranegara.sch.id", role="guru",
+         kelas="Konselor BK & Sejarah", avatar_initials="RK", can_publish=False),
     User(id="u-admin-1", name="Pak Hendra", email="admin@citranegara.sch.id", role="admin",
          kelas="Admin PPDB & Keuangan", avatar_initials="HD"),
 ]
@@ -33,79 +64,166 @@ def _due(days: int) -> str:
 DOCUMENTS = [
     Document(title="Modul Hukum Newton & Dinamika Gerak", type="materi", subject="Fisika",
              description="Rangkuman lengkap Hukum Newton I-III beserta contoh soal.",
-             file_url="https://citranegara.sch.id/materi/fisika-newton.pdf", created_by="Pak Budi Santoso"),
+             file_url="https://citranegara.sch.id/materi/fisika-newton.pdf",
+             created_by="Pak Budi Santoso", created_by_id="u-guru-2", target_level="sma", target_jurusan="IPA"),
     Document(title="Materi Aljabar Linear & Matriks", type="materi", subject="Matematika",
              description="Slide presentasi bab matriks dan determinan.",
-             file_url="https://citranegara.sch.id/materi/matematika-matriks.pdf", created_by="Ibu Sri Wahyuni"),
+             file_url="https://citranegara.sch.id/materi/matematika-matriks.pdf",
+             created_by="Ibu Sri Wahyuni", created_by_id="u-guru-1", target_level="smk", target_jurusan="RPL"),
     Document(title="Dasar Pemrograman Web: HTML & CSS", type="materi", subject="Rekayasa Perangkat Lunak",
              description="Modul praktikum pembuatan halaman web statis.",
-             file_url="https://citranegara.sch.id/materi/rpl-web.pdf", created_by="Pak Budi Santoso"),
+             file_url="https://citranegara.sch.id/materi/rpl-web.pdf",
+             created_by="Pak Budi Santoso", created_by_id="u-guru-2",
+             target_level="smk", target_jurusan="RPL", target_student_ids=["u-siswa-1"]),
     Document(title="Analisis Teks Eksposisi", type="materi", subject="Bahasa Indonesia",
              description="Struktur dan kaidah kebahasaan teks eksposisi.",
-             file_url="https://citranegara.sch.id/materi/bindo-eksposisi.pdf", created_by="Ibu Sri Wahyuni"),
+             file_url="https://citranegara.sch.id/materi/bindo-eksposisi.pdf",
+             created_by="Ibu Sri Wahyuni", created_by_id="u-guru-1"),
+    Document(title="Matematika Dasar: Pecahan & Desimal", type="materi", subject="Matematika",
+             description="Modul latihan pecahan untuk siswa SD kelas 5.",
+             file_url="https://citranegara.sch.id/materi/sd-pecahan.pdf",
+             created_by="Ibu Sri Wahyuni", created_by_id="u-guru-1", target_level="sd"),
     Document(title="Tugas 1 - Latihan Soal Matriks", type="tugas", subject="Matematika",
              description="Kerjakan 15 soal matriks pada modul halaman 22-25.", due_date=_due(4),
-             file_url="https://citranegara.sch.id/tugas/matematika-1.pdf", created_by="Ibu Sri Wahyuni"),
+             file_url="https://citranegara.sch.id/tugas/matematika-1.pdf",
+             created_by="Ibu Sri Wahyuni", created_by_id="u-guru-1",
+             target_level="smk", target_jurusan="RPL", target_student_ids=["u-siswa-1"]),
     Document(title="Tugas Proyek - Website Portofolio", type="tugas", subject="Rekayasa Perangkat Lunak",
              description="Buat website portofolio pribadi menggunakan HTML & CSS.", due_date=_due(10),
-             file_url="https://citranegara.sch.id/tugas/rpl-proyek.pdf", created_by="Pak Budi Santoso"),
+             file_url="https://citranegara.sch.id/tugas/rpl-proyek.pdf",
+             created_by="Pak Budi Santoso", created_by_id="u-guru-2", target_level="smk", target_jurusan="RPL"),
     Document(title="Tugas Esai Sejarah Kemerdekaan", type="tugas", subject="Sejarah",
              description="Tulis esai 800 kata tentang peran pemuda dalam kemerdekaan.", due_date=_due(-2),
-             file_url="https://citranegara.sch.id/tugas/sejarah-esai.pdf", created_by="Ibu Rina Kartika"),
+             file_url="https://citranegara.sch.id/tugas/sejarah-esai.pdf",
+             created_by="Ibu Rina Kartika", created_by_id="u-guru-3"),
+    Document(title="Tugas Praktikum Biologi - Sel Tumbuhan", type="tugas", subject="Biologi",
+             description="Laporan pengamatan sel tumbuhan dengan mikroskop.", due_date=_due(6),
+             file_url="https://citranegara.sch.id/tugas/bio-sel.pdf",
+             created_by="Pak Budi Santoso", created_by_id="u-guru-2", target_level="sma", target_jurusan="IPA"),
     Document(title="Kalender Akademik 2025/2026", type="dokumen", subject="Administrasi",
              description="Jadwal resmi kegiatan belajar, ujian, dan libur sekolah.",
-             file_url="https://citranegara.sch.id/dokumen/kalender-akademik.pdf", created_by="Pak Hendra"),
+             file_url="https://citranegara.sch.id/dokumen/kalender-akademik.pdf",
+             created_by="Pak Hendra", created_by_id="u-admin-1"),
     Document(title="Kurikulum Merdeka - Panduan Sekolah", type="dokumen", subject="Administrasi",
              description="Panduan implementasi Kurikulum Merdeka di Citra Negara.",
-             file_url="https://citranegara.sch.id/dokumen/kurikulum-merdeka.pdf", created_by="Pak Hendra"),
+             file_url="https://citranegara.sch.id/dokumen/kurikulum-merdeka.pdf",
+             created_by="Pak Hendra", created_by_id="u-admin-1"),
     Document(title="Formulir Surat Keterangan Siswa Aktif", type="dokumen", subject="Administrasi",
              description="Template surat keterangan siswa aktif untuk keperluan administrasi.",
-             file_url="https://citranegara.sch.id/dokumen/surat-aktif.docx", created_by="Pak Hendra"),
+             file_url="https://citranegara.sch.id/dokumen/surat-aktif.docx",
+             created_by="Pak Hendra", created_by_id="u-admin-1"),
 ]
 
 PPDB = [
     PpdbRegistration(nomor_pendaftaran="PPDB-2026-1001", nama_lengkap="Dewi Anggraini", nisn="0071234501",
-                     asal_sekolah="SMP Negeri 3 Depok", program="Rekayasa Perangkat Lunak",
+                     asal_sekolah="SMP Negeri 3 Depok", level="smk", program="RPL",
                      email="dewi@example.com", telepon="081234567801", alamat="Jl. Melati No. 12, Depok",
                      status="menunggu_verifikasi"),
     PpdbRegistration(nomor_pendaftaran="PPDB-2026-1002", nama_lengkap="Rizky Pratama", nisn="0071234502",
-                     asal_sekolah="SMP Islam Al-Azhar", program="IPA",
+                     asal_sekolah="SMP Islam Al-Azhar", level="sma", program="IPA",
                      email="rizky@example.com", telepon="081234567802", alamat="Jl. Kenanga No. 5, Jakarta",
                      status="diverifikasi"),
     PpdbRegistration(nomor_pendaftaran="PPDB-2026-1003", nama_lengkap="Salsabila Putri", nisn="0071234503",
-                     asal_sekolah="SMP Negeri 1 Bogor", program="IPS",
+                     asal_sekolah="SD Negeri 1 Bogor", level="smp", program="",
                      email="salsa@example.com", telepon="081234567803", alamat="Jl. Anggrek No. 9, Bogor",
                      status="diterima"),
 ]
 
-FEE_ROWS = [
-    ("registrasi", "Biaya Formulir & Pendaftaran PPDB", 250000.0, "lunas"),
-    ("booking", "Biaya Booking Kursi / Uang Pangkal Awal", 1500000.0, "belum_bayar"),
-    ("spp", "SPP Bulanan / Iuran Pembelajaran", 650000.0, "belum_bayar"),
-    ("seragam", "Seragam & Buku Paket Digital", 1200000.0, "belum_bayar"),
+GRADES_RAW = [
+    ("u-siswa-1", "Ahmad Fauzi", "Matematika", 88, 92, "Konsisten dan teliti dalam pengerjaan soal.", "Ibu Sri Wahyuni"),
+    ("u-siswa-1", "Ahmad Fauzi", "Rekayasa Perangkat Lunak", 95, 90, "Sangat menonjol pada praktik pemrograman.", "Pak Budi Santoso"),
+    ("u-siswa-1", "Ahmad Fauzi", "Bahasa Indonesia", 80, 78, "Perlu memperkuat struktur paragraf.", "Ibu Sri Wahyuni"),
+    ("u-siswa-1", "Ahmad Fauzi", "Sejarah", 75, 70, "Tingkatkan pemahaman kronologi peristiwa.", "Ibu Rina Kartika"),
+    ("u-siswa-2", "Nadia Rahma", "Fisika", 90, 86, "Baik dalam analisis soal hitungan.", "Pak Budi Santoso"),
+    ("u-siswa-2", "Nadia Rahma", "Biologi", 85, 88, "Laporan praktikum rapi dan lengkap.", "Pak Budi Santoso"),
+]
+
+
+def _predikat(n: float) -> str:
+    return "A" if n >= 90 else "B" if n >= 80 else "C" if n >= 70 else "D" if n >= 60 else "E"
+
+
+SOCIAL = [
+    SocialPost(judul="Praktikum RPL: Siswa Membangun Website Portofolio",
+               caption="Hasil pengajaran kelas XI RPL 1 — siswa berhasil membangun website portofolio pertama mereka. "
+                       "Bangga dengan progres anak-anak! #CitraNegara #RPL #KurikulumMerdeka",
+               image_url="https://images.unsplash.com/photo-1759922378123-a1f4f1e39bae?crop=entropy&cs=srgb&fm=jpg&w=1200&q=80",
+               platform="instagram", status="diajukan",
+               diajukan_oleh="Pak Budi Santoso", diajukan_oleh_id="u-guru-2"),
+    SocialPost(judul="Kelas Matematika Interaktif: Bedah Soal Matriks",
+               caption="Sesi bedah soal matriks bersama siswa SMK Citra Negara. Belajar jadi lebih seru! "
+                       "#CitraNegara #Matematika",
+               image_url="https://images.unsplash.com/photo-1664382953647-5c6c76dd63b9?crop=entropy&cs=srgb&fm=jpg&w=1200&q=80",
+               platform="facebook", status="terpublikasi",
+               diajukan_oleh="Ibu Sri Wahyuni", diajukan_oleh_id="u-guru-1",
+               catatan_review="Disetujui, caption sudah sesuai pedoman humas.", direview_oleh="Pak Hendra"),
 ]
 
 
 async def main():
     for name in ["users", "documents", "submissions", "ppdb", "invoices", "mentors",
-                 "mentoring_sessions", "chat_messages", "payment_transactions"]:
+                 "mentoring_sessions", "chat_messages", "payment_transactions",
+                 "levels", "grades", "social_posts"]:
         await db[name].drop()
     await ensure_indexes()
 
+    await db.levels.insert_many([lv.model_dump() for lv in LEVELS])
     await db.users.insert_many([u.model_dump() for u in USERS])
     await db.mentors.insert_many([m.model_dump() for m in MENTORS])
     await db.documents.insert_many([d.model_dump() for d in DOCUMENTS])
     await db.ppdb.insert_many([p.model_dump() for p in PPDB])
+    await db.social_posts.insert_many([s.model_dump() for s in SOCIAL])
 
+    grades = []
+    for sid, sname, subject, tugas, ujian, catatan, guru in GRADES_RAW:
+        akhir = round(tugas * 0.4 + ujian * 0.6, 1)
+        grades.append(Grade(student_id=sid, student_name=sname, subject=subject, nilai_tugas=tugas,
+                            nilai_ujian=ujian, nilai_akhir=akhir, predikat=_predikat(akhir),
+                            catatan=catatan, guru=guru).model_dump())
+    await db.grades.insert_many(grades)
+
+    fee_meta = {
+        "registrasi": ("Biaya Formulir & Pendaftaran PPDB", "admission"),
+        "booking": ("Biaya Booking Kursi / Uang Pangkal Awal", "admission"),
+        "spp": ("SPP Bulanan / Iuran Pembelajaran", "sekolah"),
+        "seragam": ("Seragam & Buku Paket Digital", "sekolah"),
+    }
+    level_map = {lv.code: lv for lv in LEVELS}
     invoices = []
-    for code, name, amount, status in FEE_ROWS:
-        invoices.append(Invoice(nomor=f"INV-{random.randint(100000, 999999)}", fee_code=code, fee_name=name,
-                                amount=amount, payer_name="Ahmad Fauzi", payer_ref="u-siswa-1",
-                                status=status, due_date=_due(14)).model_dump())
-    invoices.append(Invoice(nomor=f"INV-{random.randint(100000, 999999)}", fee_code="registrasi",
-                            fee_name="Biaya Formulir & Pendaftaran PPDB", amount=250000.0,
-                            payer_name="Dewi Anggraini", payer_ref=PPDB[0].id, status="belum_bayar",
-                            due_date=_due(7)).model_dump())
+
+    def add_invoice(code, user, status):
+        lv = level_map[user.level]
+        name, kategori = fee_meta[code]
+        paid = status == "lunas"
+        invoices.append(Invoice(
+            nomor=f"INV-{random.randint(100000, 999999)}", fee_code=code, fee_name=name,
+            amount=float(lv.fees[code]), payer_name=user.name, payer_ref=user.id,
+            level=lv.code, jurusan=user.jurusan or "", kategori=kategori, status=status,
+            due_date=_due(14),
+            paid_at=datetime.now(timezone.utc) - timedelta(days=5) if paid else None,
+            receipt_no=f"KW-{random.randint(100000, 999999)}" if paid else None,
+        ).model_dump())
+
+    siswa = {u.id: u for u in USERS if u.role == "siswa"}
+    add_invoice("registrasi", siswa["u-siswa-1"], "lunas")
+    add_invoice("booking", siswa["u-siswa-1"], "lunas")
+    add_invoice("spp", siswa["u-siswa-1"], "belum_bayar")
+    add_invoice("seragam", siswa["u-siswa-1"], "belum_bayar")
+    add_invoice("registrasi", siswa["u-siswa-2"], "lunas")
+    add_invoice("spp", siswa["u-siswa-2"], "belum_bayar")
+    add_invoice("spp", siswa["u-siswa-3"], "belum_bayar")
+    add_invoice("registrasi", siswa["u-siswa-4"], "belum_bayar")
+
+    for reg in PPDB[:2]:
+        lv = level_map[reg.level]
+        for code in ("registrasi", "booking"):
+            name, kategori = fee_meta[code]
+            invoices.append(Invoice(
+                nomor=f"INV-{random.randint(100000, 999999)}", fee_code=code, fee_name=name,
+                amount=float(lv.fees[code]), payer_name=reg.nama_lengkap, payer_ref=reg.id,
+                level=lv.code, jurusan=reg.program, kategori=kategori, status="belum_bayar",
+                due_date=_due(7),
+            ).model_dump())
     await db.invoices.insert_many(invoices)
 
     sessions = [
@@ -120,7 +238,8 @@ async def main():
                          meeting_link="https://meet.citranegara.sch.id/119284", status="terjadwal"),
     ]
     await db.mentoring_sessions.insert_many([s.model_dump() for s in sessions])
-    print("Seed selesai: users, mentors, documents, ppdb, invoices, mentoring sessions.")
+    print(f"Seed selesai: {len(LEVELS)} jenjang, {len(USERS)} user, {len(DOCUMENTS)} dokumen, "
+          f"{len(grades)} nilai, {len(invoices)} invoice, {len(SOCIAL)} pengajuan sosmed.")
 
 
 if __name__ == "__main__":

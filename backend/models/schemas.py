@@ -170,6 +170,44 @@ class GradeUpdate(BaseModel):
     catatan: Optional[str] = None
 
 
+class MapelRow(BaseModel):
+    subject: str
+    nilai_tugas: Optional[float] = None
+    nilai_ujian: Optional[float] = None
+    nilai_akhir: Optional[float] = None
+    predikat: Optional[str] = None
+    catatan: str = ""
+    grade_id: Optional[str] = None
+    terisi: bool = False
+
+
+class LembarRapor(BaseModel):
+    student_id: str
+    student_name: str
+    kelas: str = ""
+    jurusan: str = ""
+    level: str = ""
+    semester: str
+    kkm: float = 75
+    jumlah_terisi: int = 0
+    rows: List[MapelRow] = []
+
+
+class BatchGradeItem(BaseModel):
+    subject: str
+    nilai_tugas: Optional[float] = None
+    nilai_ujian: Optional[float] = None
+    catatan: str = ""
+
+
+class BatchGradeCreate(BaseModel):
+    student_id: str
+    semester: str = ""
+    guru: str = ""
+    guru_id: str = ""
+    items: List[BatchGradeItem] = []
+
+
 class SemesterPoint(BaseModel):
     semester: str
     rata_rata: float

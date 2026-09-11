@@ -8,8 +8,8 @@ from fastapi.responses import StreamingResponse
 
 from lib.db import db
 from models.schemas import (
-    Grade, GradeCreate, GradeUpdate, KelasStudentRow, KelasSummary, RaporSummary,
-    SemesterPoint, TrenRapor,
+    BatchGradeCreate, Grade, GradeCreate, GradeUpdate, KelasStudentRow, KelasSummary, LembarRapor,
+    MapelRow, RaporSummary, SemesterPoint, TrenRapor,
 )
 
 router = APIRouter(prefix="/grades", tags=["grades"])
@@ -21,6 +21,29 @@ SEMESTER_ORDER = [
     "Semester 2 - 2024/2025",
     "Semester 1 - 2025/2026",
 ]
+
+# Mata pelajaran bawaan per jurusan/jenjang agar guru tidak perlu mengetik nama mapel.
+MAPEL_UMUM = ["Matematika", "PPKN", "Bahasa Indonesia", "Bahasa Inggris", "Kesenian"]
+MAPEL_BY_JURUSAN = {
+    "IPA": MAPEL_UMUM + ["Fisika", "Kimia", "Biologi"],
+    "IPS": MAPEL_UMUM + ["Ekonomi", "Sosiologi", "Geografi", "Sejarah"],
+    "Bahasa": MAPEL_UMUM + ["Sastra Indonesia", "Bahasa Jepang", "Bahasa Arab", "Antropologi"],
+    "RPL": MAPEL_UMUM + ["Pemrograman Dasar", "Basis Data", "Pemrograman Web", "Produk Kreatif"],
+    "TKJ": MAPEL_UMUM + ["Jaringan Komputer", "Sistem Operasi", "Administrasi Server"],
+    "Multimedia": MAPEL_UMUM + ["Desain Grafis", "Videografi", "Animasi 2D"],
+    "Akuntansi": MAPEL_UMUM + ["Akuntansi Dasar", "Perpajakan", "Spreadsheet"],
+}
+MAPEL_BY_LEVEL = {
+    "sd": MAPEL_UMUM + ["IPAS", "Pendidikan Agama", "Penjaskes"],
+    "smp": MAPEL_UMUM + ["IPA Terpadu", "IPS Terpadu", "Prakarya", "Penjaskes"],
+}
+
+
+def _mapel_untuk(siswa: dict) -> List[str]:
+    jurusan = (siswa or {}).get("jurusan") or ""
+    if jurusan in MAPEL_BY_JURUSAN:
+        return MAPEL_BY_JURUSAN[jurusan]
+    return MAPEL_BY_LEVEL.get((siswa or {}).get("level") or "", MAPEL_UMUM)
 
 
 def _sem_key(name: str) -> int:
@@ -226,6 +249,93 @@ async def export_kelas(teacher_id: str):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/lembar/{student_id}", response_model=LembarRapor)
+async def lembar(student_id: str, semester: Optional[str] = None):
+    """Lembar pengisian rapor: semua mapel siswa sudah terdaftar + nilai lama terisi otomatis."""
+    siswa = await db.users.find_one({"id": student_id, "role": "siswa"})
+    if not siswa:
+        raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+
+    sem = semester or CURRENT_SEMESTER
+    existing_rows = await db.grades.find({"student_id": student_id, "semester": sem}).to_list(100)
+    existing = {r["subject"]: r for r in existing_rows}
+
+    subjects = list(_mapel_untuk(siswa))
+    # Mapel di luar daftar bawaan (mis. input manual sebelumnya) tetap ikut ditampilkan.
+    for extra in existing:
+        if extra not in subjects:
+            subjects.append(extra)
+
+    rows: List[MapelRow] = []
+    for subject in subjects:
+        g = existing.get(subject)
+        rows.append(MapelRow(
+            subject=subject,
+            nilai_tugas=g["nilai_tugas"] if g else None,
+            nilai_ujian=g["nilai_ujian"] if g else None,
+            nilai_akhir=g["nilai_akhir"] if g else None,
+            predikat=g["predikat"] if g else None,
+            catatan=(g or {}).get("catatan", "") or "",
+            grade_id=g["id"] if g else None,
+            terisi=bool(g),
+        ))
+
+    return LembarRapor(
+        student_id=student_id,
+        student_name=siswa["name"],
+        kelas=siswa.get("kelas") or "",
+        jurusan=siswa.get("jurusan") or "",
+        level=siswa.get("level") or "",
+        semester=sem,
+        kkm=KKM,
+        jumlah_terisi=len([r for r in rows if r.terisi]),
+        rows=rows,
+    )
+
+
+@router.post("/batch", response_model=List[Grade])
+async def batch_grades(payload: BatchGradeCreate):
+    """Simpan seluruh nilai satu siswa dalam sekali kirim (upsert per mata pelajaran)."""
+    siswa = await db.users.find_one({"id": payload.student_id, "role": "siswa"})
+    if not siswa:
+        raise HTTPException(status_code=404, detail="Siswa tidak ditemukan")
+
+    sem = payload.semester or CURRENT_SEMESTER
+    tersimpan: List[Grade] = []
+    for item in payload.items:
+        if item.nilai_tugas is None and item.nilai_ujian is None:
+            continue  # baris dibiarkan kosong oleh guru
+        tugas = float(item.nilai_tugas or 0)
+        ujian = float(item.nilai_ujian or 0)
+        for label, val in (("tugas", tugas), ("ujian", ujian)):
+            if val < 0 or val > 100:
+                raise HTTPException(status_code=400, detail=f"Nilai {label} {item.subject} harus 0-100")
+
+        akhir, pred = _hitung(tugas, ujian)
+        existing = await db.grades.find_one(
+            {"student_id": payload.student_id, "subject": item.subject, "semester": sem}
+        )
+        doc = Grade(
+            id=existing["id"] if existing else Grade().id,
+            student_id=payload.student_id,
+            student_name=siswa["name"],
+            subject=item.subject,
+            semester=sem,
+            nilai_tugas=tugas,
+            nilai_ujian=ujian,
+            nilai_akhir=akhir,
+            predikat=pred,
+            catatan=item.catatan or "",
+            guru=payload.guru,
+        )
+        await db.grades.replace_one({"id": doc.id}, doc.model_dump(), upsert=True)
+        tersimpan.append(doc)
+
+    if not tersimpan:
+        raise HTTPException(status_code=400, detail="Belum ada nilai yang diisi")
+    return tersimpan
 
 
 @router.post("", response_model=Grade)

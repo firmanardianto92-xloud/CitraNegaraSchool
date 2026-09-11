@@ -1,23 +1,17 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Award, BookOpen, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Award, BookOpen } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet } from "@/lib/api";
 import { useCurrentUser } from "@/lib/session";
 import TrenNilai from "@/components/TrenNilai";
 import CatatanWaliList from "@/components/CatatanWali";
+import LembarRaporDialog from "@/components/LembarRaporDialog";
 
 const PREDIKAT_CLASS = {
   A: "bg-[#DCFCE7] text-[#15803D] border-transparent",
@@ -26,109 +20,6 @@ const PREDIKAT_CLASS = {
   D: "bg-[#FEE2E2] text-[#B91C1C] border-transparent",
   E: "bg-[#FEE2E2] text-[#B91C1C] border-transparent",
 };
-
-function InputNilaiDialog({ students, defaultStudentId }) {
-  const qc = useQueryClient();
-  const { data: user } = useCurrentUser();
-  const [form, setForm] = useState({
-    student_id: defaultStudentId || "",
-    subject: "",
-    nilai_tugas: "",
-    nilai_ujian: "",
-    catatan: "",
-  });
-
-  const simpan = useMutation({
-    mutationFn: (payload) => apiPost("/grades", payload),
-    onSuccess: (g) => {
-      qc.invalidateQueries({ queryKey: ["rapor"] });
-      qc.invalidateQueries({ queryKey: ["grades"] });
-      toast.success(`Nilai ${g.subject} tersimpan — akhir ${g.nilai_akhir} (${g.predikat})`);
-      setForm({ student_id: form.student_id, subject: "", nilai_tugas: "", nilai_ujian: "", catatan: "" });
-    },
-    onError: (e) => toast.error(e?.body?.detail || "Gagal menyimpan nilai"),
-  });
-
-  const namaSiswa = students.find((s) => s.id === form.student_id)?.name || "";
-
-  return (
-    <Dialog>
-      <DialogTrigger
-        render={
-          <Button size="sm" data-testid="open-grade-dialog-button">
-            <Plus className="mr-2 h-4 w-4" /> Input Nilai
-          </Button>
-        }
-      />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Input Nilai Rapor</DialogTitle>
-          <DialogDescription>Nilai akhir dihitung otomatis: 40% tugas + 60% ujian.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="g-siswa">Siswa</Label>
-            <Select value={form.student_id} onValueChange={(v) => setForm({ ...form, student_id: String(v) })}>
-              <SelectTrigger id="g-siswa" data-testid="grade-student-select">
-                <SelectValue>
-                  {(v) => students.find((s) => s.id === String(v))?.name || "Pilih siswa"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((s) => (
-                  <SelectItem key={s.id} value={s.id} data-testid={`grade-student-option-${s.id}`}>
-                    {s.name} · {s.kelas}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="g-subject">Mata Pelajaran</Label>
-            <Input id="g-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} data-testid="grade-subject-input" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="g-tugas">Nilai Tugas</Label>
-              <Input id="g-tugas" type="number" value={form.nilai_tugas} onChange={(e) => setForm({ ...form, nilai_tugas: e.target.value })} data-testid="grade-tugas-input" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="g-ujian">Nilai Ujian</Label>
-              <Input id="g-ujian" type="number" value={form.nilai_ujian} onChange={(e) => setForm({ ...form, nilai_ujian: e.target.value })} data-testid="grade-ujian-input" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="g-catatan">Catatan Guru</Label>
-            <Textarea id="g-catatan" value={form.catatan} onChange={(e) => setForm({ ...form, catatan: e.target.value })} data-testid="grade-catatan-input" />
-          </div>
-        </div>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" data-testid="grade-cancel-button">Batal</Button>} />
-          <DialogClose
-            render={
-              <Button
-                data-testid="grade-save-button"
-                onClick={() =>
-                  simpan.mutate({
-                    student_id: form.student_id,
-                    student_name: namaSiswa,
-                    subject: form.subject,
-                    nilai_tugas: Number(form.nilai_tugas) || 0,
-                    nilai_ujian: Number(form.nilai_ujian) || 0,
-                    catatan: form.catatan,
-                    guru: user?.name || "Guru",
-                  })
-                }
-              >
-                Simpan Nilai
-              </Button>
-            }
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default function Rapor() {
   const { data: user } = useCurrentUser();
@@ -155,7 +46,7 @@ export default function Rapor() {
           ? `Nilai ${user?.name} · ${user?.kelas ?? ""} · dapat dilihat siswa & orang tua`
           : "Input dan pantau nilai per mata pelajaran"
       }
-      action={!isSiswa ? <InputNilaiDialog students={studentList} defaultStudentId={studentId} /> : null}
+      action={!isSiswa ? <LembarRaporDialog students={studentList} defaultStudentId={studentId} /> : null}
     >
       {!isSiswa ? (
         <div className="mb-6 max-w-sm">

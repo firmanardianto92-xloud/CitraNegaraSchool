@@ -20,6 +20,12 @@ Kata sandi semua akun demo: `citra123`.
 - **Admin**: konfigurasi jenjang + jurusan + tarif; izin publikasi guru; review sosmed; verifikasi PPDB; bisa membuka Kelas Saya untuk guru mana pun (dropdown pilih guru).
 
 ## Wali kelas & KKM
+### Pengisian rapor (mode mudah)
+`components/LembarRaporDialog.jsx` + `GET /grades/lembar/{student_id}` + `POST /grades/batch`.
+Guru pilih siswa → seluruh mapel sesuai jurusan/jenjang otomatis terdaftar (MAPEL_BY_JURUSAN / MAPEL_BY_LEVEL di grades.py),
+nilai lama ter-prefill, nilai akhir + predikat dihitung live di browser, "Isi cepat" mengisi semua baris kosong,
+lalu satu tombol menyimpan semua (upsert per student+subject+semester). Tersedia di halaman Rapor & tiap baris Kelas Saya.
+
 KKM = 75 (`backend/routers/grades.py`). Nilai akhir < 75 = "nilai merah".
 Siswa terhubung ke guru via `users.homeroom_teacher_id`.
 Riwayat nilai tersedia 3 semester (`SEMESTERS` di seed.py): Semester 1 2024/2025, Semester 2 2024/2025, Semester 1 2025/2026 (= `CURRENT_SEMESTER`).

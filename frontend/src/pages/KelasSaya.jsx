@@ -12,6 +12,7 @@ import TrenNilai from "@/components/TrenNilai";
 import { apiGet } from "@/lib/api";
 import { useCurrentUser } from "@/lib/session";
 import { CatatanWaliDialog } from "@/components/CatatanWali";
+import LembarRaporDialog from "@/components/LembarRaporDialog";
 
 const PREDIKAT_CLASS = {
   A: "bg-[#DCFCE7] text-[#15803D] border-transparent",
@@ -57,7 +58,13 @@ function StudentRow({ row, kkm }) {
           )}
         </TableCell>
         <TableCell className="text-right">
-          <CatatanWaliDialog studentId={row.student_id} studentName={row.student_name} compact />
+          <div className="flex justify-end gap-2">
+            <LembarRaporDialog
+              students={[{ id: row.student_id, name: row.student_name, kelas: row.kelas }]}
+              defaultStudentId={row.student_id}
+            />
+            <CatatanWaliDialog studentId={row.student_id} studentName={row.student_name} compact />
+          </div>
         </TableCell>
       </TableRow>
       {open ? (
@@ -256,7 +263,7 @@ export default function KelasSaya() {
                     <TableHead>Predikat</TableHead>
                     <TableHead>Mapel</TableHead>
                     <TableHead>Status Nilai</TableHead>
-                    <TableHead className="text-right">Catatan</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

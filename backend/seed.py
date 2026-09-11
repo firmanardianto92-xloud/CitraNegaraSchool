@@ -6,8 +6,14 @@ from datetime import datetime, timedelta, timezone
 
 from lib.db import db, ensure_indexes
 from models.schemas import (
-    Document, Grade, Invoice, Level, Mentor, MentoringSession, PpdbRegistration, SocialPost, User,
+    CatatanWali, Document, Grade, Invoice, Level, Mentor, MentoringSession, PpdbRegistration, SocialPost, User,
 )
+
+SEMESTERS = [
+    "Semester 1 - 2024/2025",
+    "Semester 2 - 2024/2025",
+    "Semester 1 - 2025/2026",
+]
 
 LEVELS = [
     Level(code="sd", name="SD - Sekolah Dasar", jurusan=[],
@@ -219,7 +225,7 @@ SOCIAL = [
 async def main():
     for name in ["users", "documents", "submissions", "ppdb", "invoices", "mentors",
                  "mentoring_sessions", "chat_messages", "payment_transactions",
-                 "levels", "grades", "social_posts"]:
+                 "levels", "grades", "social_posts", "catatan_wali"]:
         await db[name].drop()
     await ensure_indexes()
 
@@ -232,10 +238,15 @@ async def main():
 
     grades = []
     for sid, sname, subject, tugas, ujian, catatan, guru in GRADES_RAW:
-        akhir = round(tugas * 0.4 + ujian * 0.6, 1)
-        grades.append(Grade(student_id=sid, student_name=sname, subject=subject, nilai_tugas=tugas,
-                            nilai_ujian=ujian, nilai_akhir=akhir, predikat=_predikat(akhir),
-                            catatan=catatan, guru=guru).model_dump())
+        # Riwayat 3 semester agar grafik perkembangan punya tren.
+        for sem_idx, semester in enumerate(SEMESTERS):
+            d = {0: -7, 1: -3, 2: 0}[sem_idx]
+            t = max(35, min(100, tugas + d))
+            u = max(35, min(100, ujian + d))
+            akhir = round(t * 0.4 + u * 0.6, 1)
+            grades.append(Grade(student_id=sid, student_name=sname, subject=subject, semester=semester,
+                                nilai_tugas=t, nilai_ujian=u, nilai_akhir=akhir,
+                                predikat=_predikat(akhir), catatan=catatan, guru=guru).model_dump())
 
     # Nilai 10 siswa per kelas (IPA/IPS/Bahasa) — sengaja beragam agar ada nilai merah (<75).
     rng = random.Random(20260101)
@@ -251,18 +262,45 @@ async def main():
             sid = f"u-{jurusan.lower()}-{idx}"
             # 3 siswa pertama tiap kelas diberi beberapa nilai merah, sisanya mayoritas tuntas.
             rawan = idx <= 3
-            for subject in cfg["mapel"]:
-                if rawan and rng.random() < 0.45:
-                    tugas, ujian = rng.randint(50, 70), rng.randint(48, 72)
-                else:
-                    tugas, ujian = rng.randint(76, 98), rng.randint(74, 97)
-                akhir = round(tugas * 0.4 + ujian * 0.6, 1)
-                catatan = rng.choice(CATATAN_MERAH if akhir < 75 else CATATAN_BAIK)
-                grades.append(Grade(student_id=sid, student_name=nama, subject=subject,
-                                    nilai_tugas=tugas, nilai_ujian=ujian, nilai_akhir=akhir,
-                                    predikat=_predikat(akhir), catatan=catatan,
-                                    guru=guru_label).model_dump())
+            # Tren antar semester: siswa rawan membaik perlahan, siswa lain naik tipis.
+            drift = {0: -6, 1: -3, 2: 0} if rawan else {0: -4, 1: -2, 2: 0}
+            for sem_idx, semester in enumerate(SEMESTERS):
+                for subject in cfg["mapel"]:
+                    if rawan and rng.random() < 0.45:
+                        tugas, ujian = rng.randint(50, 70), rng.randint(48, 72)
+                    else:
+                        tugas, ujian = rng.randint(76, 98), rng.randint(74, 97)
+                    d = drift[sem_idx]
+                    tugas = max(35, min(100, tugas + d))
+                    ujian = max(35, min(100, ujian + d))
+                    akhir = round(tugas * 0.4 + ujian * 0.6, 1)
+                    catatan = rng.choice(CATATAN_MERAH if akhir < 75 else CATATAN_BAIK)
+                    grades.append(Grade(student_id=sid, student_name=nama, subject=subject,
+                                        semester=semester, nilai_tugas=tugas, nilai_ujian=ujian,
+                                        nilai_akhir=akhir, predikat=_predikat(akhir), catatan=catatan,
+                                        guru=guru_label).model_dump())
     await db.grades.insert_many(grades)
+
+    catatan_wali = [
+        CatatanWali(student_id="u-ipa-1", student_name="Adinda Maharani", semester=SEMESTERS[-1],
+                    isi="Adinda menunjukkan perbaikan pada Kimia, namun Matematika dan Bahasa Inggris masih "
+                        "di bawah KKM. Mohon dukungan orang tua untuk pendampingan belajar di rumah "
+                        "dan kehadiran pada program remedial hari Sabtu.",
+                    guru="Pak Dedi Kurniawan", guru_id="u-guru-ipa"),
+        CatatanWali(student_id="u-ipa-4", student_name="Dimas Aryaputra", semester=SEMESTERS[-1],
+                    isi="Dimas konsisten tuntas di semua mata pelajaran dan aktif membantu teman saat "
+                        "praktikum. Disarankan mengikuti olimpiade sains tingkat kota.",
+                    guru="Pak Dedi Kurniawan", guru_id="u-guru-ipa"),
+        CatatanWali(student_id="u-ips-1", student_name="Kevin Saputra", semester=SEMESTERS[-1],
+                    isi="Kevin perlu meningkatkan kedisiplinan pengumpulan tugas Bahasa Indonesia. "
+                        "Nilai Ekonomi dan Geografi sudah sangat baik.",
+                    guru="Ibu Maya Lestari", guru_id="u-guru-ips"),
+        CatatanWali(student_id="u-siswa-1", student_name="Ahmad Fauzi", semester=SEMESTERS[-1],
+                    isi="Ahmad sangat menonjol pada praktik pemrograman dan siap mengikuti magang industri. "
+                        "Tetap jaga nilai Bahasa Indonesia dan Sejarah.",
+                    guru="Ibu Sri Wahyuni", guru_id="u-guru-1"),
+    ]
+    await db.catatan_wali.insert_many([c.model_dump() for c in catatan_wali])
 
     fee_meta = {
         "registrasi": ("Biaya Formulir & Pendaftaran PPDB", "admission"),

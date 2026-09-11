@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ChevronDown, Search, Users2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, Download, Search, Users2 } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import TrenNilai from "@/components/TrenNilai";
 import { apiGet } from "@/lib/api";
 import { useCurrentUser } from "@/lib/session";
+import { CatatanWaliDialog } from "@/components/CatatanWali";
 
 const PREDIKAT_CLASS = {
   A: "bg-[#DCFCE7] text-[#15803D] border-transparent",
@@ -49,15 +51,21 @@ function StudentRow({ row, kkm }) {
               {row.jumlah_merah} nilai merah
             </Badge>
           ) : (
-            <Badge className="bg-[#DCFCE7] text-[#15803D]" data-testid={`kelas-tuntas-${row.student_id}`}>
+            <Badge className="bg-[#DCFCE7] text-[#15803D]" data-testid={`kelas-tuntas-badge-${row.student_id}`}>
               Tuntas semua
             </Badge>
           )}
         </TableCell>
+        <TableCell className="text-right">
+          <CatatanWaliDialog studentId={row.student_id} studentName={row.student_name} compact />
+        </TableCell>
       </TableRow>
       {open ? (
         <TableRow data-testid={`kelas-detail-${row.student_id}`}>
-          <TableCell colSpan={6} className="bg-[#F8FAFC]">
+          <TableCell colSpan={7} className="bg-[#F8FAFC]">
+            <div className="py-2">
+              <TrenNilai studentId={row.student_id} />
+            </div>
             <div className="grid gap-2 py-2 sm:grid-cols-2 lg:grid-cols-3">
               {row.grades.map((g) => {
                 const merah = g.nilai_akhir < kkm;
@@ -171,6 +179,14 @@ export default function KelasSaya() {
             <div className="flex items-center gap-2">
               <Users2 className="h-5 w-5 text-[#1E3A8A]" />
               <h2 className="font-heading text-lg font-bold">Daftar Siswa & Nilai</h2>
+              <a
+                href={activeTeacher ? `/api/grades/kelas/${activeTeacher}/export` : "#"}
+                data-testid="kelas-export-button"
+              >
+                <Button size="sm" variant="outline" className="ml-2">
+                  <Download className="mr-2 h-4 w-4" /> Unduh Excel
+                </Button>
+              </a>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {isAdmin ? (
@@ -240,6 +256,7 @@ export default function KelasSaya() {
                     <TableHead>Predikat</TableHead>
                     <TableHead>Mapel</TableHead>
                     <TableHead>Status Nilai</TableHead>
+                    <TableHead className="text-right">Catatan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

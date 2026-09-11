@@ -170,6 +170,42 @@ class GradeUpdate(BaseModel):
     catatan: Optional[str] = None
 
 
+class SemesterPoint(BaseModel):
+    semester: str
+    rata_rata: float
+    predikat: str
+    jumlah_mapel: int
+    jumlah_merah: int
+
+
+class TrenRapor(BaseModel):
+    student_id: str
+    student_name: str
+    kkm: float = 75
+    semesters: List[SemesterPoint] = []
+    mapel_series: List[Dict] = []  # [{semester, "Matematika": 88, ...}]
+    selisih_terakhir: float = 0
+
+
+class CatatanWali(BaseModel):
+    id: str = Field(default_factory=_uid)
+    student_id: str
+    student_name: str = ""
+    semester: str = ""
+    isi: str
+    guru: str = ""
+    guru_id: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class CatatanWaliCreate(BaseModel):
+    student_id: str
+    isi: str
+    semester: str = ""
+    guru: str = ""
+    guru_id: str = ""
+
+
 class KelasStudentRow(BaseModel):
     student_id: str
     student_name: str

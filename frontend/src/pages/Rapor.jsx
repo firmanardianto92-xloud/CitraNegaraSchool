@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { apiGet, apiPost } from "@/lib/api";
 import { useCurrentUser } from "@/lib/session";
+import TrenNilai from "@/components/TrenNilai";
+import CatatanWaliList from "@/components/CatatanWali";
 
 const PREDIKAT_CLASS = {
   A: "bg-[#DCFCE7] text-[#15803D] border-transparent",
@@ -203,6 +205,14 @@ export default function Rapor() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <TrenNilai studentId={studentId} />
+      </div>
+
+      <div className="mt-6">
+        <CatatanWaliList studentId={studentId} studentName={data?.student_name ?? "siswa"} canWrite={!isSiswa} />
       </div>
 
       <Card className="mt-6 border-[#E2E8F0]">

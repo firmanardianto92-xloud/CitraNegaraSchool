@@ -13,7 +13,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 from lib.db import client, ensure_indexes  # noqa: E402
 from routers import (  # noqa: E402
-    admin, auth, chat, documents, grades, mentoring, payments, ppdb, social, users, webhook,
+    admin, auth, chat, documents, grades, mentoring, notes, payments, ppdb, social, users, webhook,
 )
 
 
@@ -44,6 +44,7 @@ api_router.include_router(admin.router)
 api_router.include_router(users.router)
 api_router.include_router(grades.router)
 api_router.include_router(social.router)
+api_router.include_router(notes.router)
 api_router.include_router(webhook.router)
 
 app.add_middleware(

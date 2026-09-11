@@ -62,6 +62,10 @@ INDEXES: dict[str, list[IndexModel]] = {
         IndexModel([("status", ASCENDING), ("created_at", DESCENDING)], name="status_created"),
         IndexModel([("diajukan_oleh_id", ASCENDING)], name="diajukan_oleh"),
     ],
+    "catatan_wali": [
+        IndexModel([("id", ASCENDING)], name="id", unique=True),
+        IndexModel([("student_id", ASCENDING), ("created_at", DESCENDING)], name="student_created"),
+    ],
 }
 
 

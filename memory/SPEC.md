@@ -22,6 +22,9 @@ Kata sandi semua akun demo: `citra123`.
 ## Wali kelas & KKM
 KKM = 75 (`backend/routers/grades.py`). Nilai akhir < 75 = "nilai merah".
 Siswa terhubung ke guru via `users.homeroom_teacher_id`.
+Riwayat nilai tersedia 3 semester (`SEMESTERS` di seed.py): Semester 1 2024/2025, Semester 2 2024/2025, Semester 1 2025/2026 (= `CURRENT_SEMESTER`).
+Rapor & rekap kelas hanya menghitung `CURRENT_SEMESTER`; grafik tren memakai seluruh semester.
+Grafik memakai recharts (`frontend/src/components/TrenNilai.jsx`), catatan wali di `components/CatatanWali.jsx`.
 | Guru | id | Kelas | Mata pelajaran |
 |---|---|---|---|
 | Pak Dedi Kurniawan | u-guru-ipa | XI IPA 1 | Matematika, PPKN, B. Indonesia, B. Inggris, Kesenian, Fisika, Kimia, Biologi |
@@ -48,7 +51,8 @@ payment_transactions, levels, grades, social_posts.
 - /ppdb/registrations (GET, POST — tagihan admission otomatis sesuai tarif jenjang), PATCH /{id}
 - /payments/fees?level=, /payments/invoices?payer_ref=&kategori=, POST /payments/invoices, /payments/checkout,
   /payments/status/{session_id}, GET /payments/invoices/{id}/receipt (400 bila belum lunas), /webhook/stripe
-- /grades (GET, POST), /grades/rapor/{student_id}, /grades/kelas/{teacher_id} (rekap kelas + jumlah_merah/tuntas), PATCH /grades/{id} — nilai akhir = 40% tugas + 60% ujian
+- /grades (GET, POST), /grades/rapor/{student_id}?semester=, /grades/kelas/{teacher_id} (rekap kelas + jumlah_merah/tuntas), /grades/tren/{student_id} (tren antar semester untuk grafik), /grades/kelas/{teacher_id}/export (unduh .xlsx openpyxl), PATCH /grades/{id} — nilai akhir = 40% tugas + 60% ujian
+- /notes (GET ?student_id=&guru_id=, POST, DELETE /{id}) — catatan wali kelas, ditulis guru/admin, dibaca siswa & orang tua
 - /users?role=&level=&jurusan=&homeroom_teacher_id=
 - /social/posts (GET, POST), PATCH /social/posts/{id} (disetujui|ditolak|terpublikasi)
 - /mentoring/mentors, /mentoring/sessions, PATCH /sessions/{id}

@@ -1,17 +1,30 @@
 """Rapor nilai: guru input nilai per mata pelajaran, sistem hitung nilai akhir & rata-rata."""
 
+import io
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from lib.db import db
 from models.schemas import (
     Grade, GradeCreate, GradeUpdate, KelasStudentRow, KelasSummary, RaporSummary,
+    SemesterPoint, TrenRapor,
 )
 
 router = APIRouter(prefix="/grades", tags=["grades"])
 
 KKM = 75  # nilai di bawah ini dihitung sebagai "nilai merah"
+CURRENT_SEMESTER = "Semester 1 - 2025/2026"
+SEMESTER_ORDER = [
+    "Semester 1 - 2024/2025",
+    "Semester 2 - 2024/2025",
+    "Semester 1 - 2025/2026",
+]
+
+
+def _sem_key(name: str) -> int:
+    return SEMESTER_ORDER.index(name) if name in SEMESTER_ORDER else 99
 
 
 def _predikat(nilai: float) -> str:
@@ -43,14 +56,16 @@ async def list_grades(student_id: Optional[str] = None, semester: Optional[str] 
 
 
 @router.get("/rapor/{student_id}", response_model=RaporSummary)
-async def rapor(student_id: str):
-    rows = await db.grades.find({"student_id": student_id}).sort("created_at", 1).to_list(200)
+async def rapor(student_id: str, semester: Optional[str] = None):
+    rows = await db.grades.find(
+        {"student_id": student_id, "semester": semester or CURRENT_SEMESTER}
+    ).sort("created_at", 1).to_list(200)
     if not rows:
         siswa = await db.users.find_one({"id": student_id})
         return RaporSummary(
             student_id=student_id,
             student_name=siswa["name"] if siswa else "Siswa",
-            semester="Semester 1 - 2025/2026",
+            semester=semester or CURRENT_SEMESTER,
             rata_rata=0,
             predikat="-",
             jumlah_mapel=0,
@@ -79,7 +94,9 @@ async def kelas(teacher_id: str):
     siswa = await db.users.find({"role": "siswa", "homeroom_teacher_id": teacher_id}).sort("name", 1).to_list(200)
     rows: List[KelasStudentRow] = []
     for s in siswa:
-        g_rows = await db.grades.find({"student_id": s["id"]}).sort("subject", 1).to_list(100)
+        g_rows = await db.grades.find(
+            {"student_id": s["id"], "semester": CURRENT_SEMESTER}
+        ).sort("subject", 1).to_list(100)
         grades = [Grade(**g) for g in g_rows]
         merah = [g for g in grades if g.nilai_akhir < KKM]
         rata = round(sum(g.nilai_akhir for g in grades) / len(grades), 1) if grades else 0
@@ -107,6 +124,107 @@ async def kelas(teacher_id: str):
         rata_rata_kelas=rata_kelas,
         siswa_bermasalah=len([r for r in rows if not r.tuntas]),
         students=rows,
+    )
+
+
+@router.get("/tren/{student_id}", response_model=TrenRapor)
+async def tren(student_id: str):
+    """Tren nilai antar semester untuk grafik perkembangan siswa."""
+    siswa = await db.users.find_one({"id": student_id})
+    rows = await db.grades.find({"student_id": student_id}).to_list(500)
+    if not rows:
+        return TrenRapor(
+            student_id=student_id,
+            student_name=(siswa or {}).get("name", "Siswa"),
+            kkm=KKM,
+        )
+
+    grades = [Grade(**r) for r in rows]
+    per_sem: dict[str, list[Grade]] = {}
+    for g in grades:
+        per_sem.setdefault(g.semester, []).append(g)
+
+    semesters: List[SemesterPoint] = []
+    mapel_series: List[dict] = []
+    for sem in sorted(per_sem.keys(), key=_sem_key):
+        items = per_sem[sem]
+        rata = round(sum(i.nilai_akhir for i in items) / len(items), 1)
+        semesters.append(SemesterPoint(
+            semester=sem,
+            rata_rata=rata,
+            predikat=_predikat(rata),
+            jumlah_mapel=len(items),
+            jumlah_merah=len([i for i in items if i.nilai_akhir < KKM]),
+        ))
+        point = {"semester": sem.replace("Semester ", "Sem ").replace(" - ", " "), "Rata-rata": rata}
+        for i in items:
+            point[i.subject] = i.nilai_akhir
+        mapel_series.append(point)
+
+    selisih = round(semesters[-1].rata_rata - semesters[-2].rata_rata, 1) if len(semesters) > 1 else 0
+    return TrenRapor(
+        student_id=student_id,
+        student_name=grades[0].student_name,
+        kkm=KKM,
+        semesters=semesters,
+        mapel_series=mapel_series,
+        selisih_terakhir=selisih,
+    )
+
+
+@router.get("/kelas/{teacher_id}/export")
+async def export_kelas(teacher_id: str):
+    """Unduh rekap nilai kelas sebagai file Excel untuk rapat wali murid."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    data = await kelas(teacher_id)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Rekap Nilai"
+
+    ws["A1"] = "REKAP NILAI KELAS - SEKOLAH CITRA NEGARA"
+    ws["A1"].font = Font(size=14, bold=True)
+    ws["A2"] = f"{data.teacher_name} · {data.kelas} · Jurusan {data.jurusan or '-'} · KKM {data.kkm}"
+    ws["A3"] = (f"Jumlah siswa: {data.jumlah_siswa} · Rata-rata kelas: {data.rata_rata_kelas} · "
+                f"Siswa dengan nilai merah: {data.siswa_bermasalah}")
+
+    mapel = sorted({g.subject for s in data.students for g in s.grades})
+    header = ["No", "Nama Siswa", "Kelas"] + mapel + ["Rata-rata", "Predikat", "Nilai Merah", "Status"]
+    ws.append([])
+    ws.append(header)
+
+    head_fill = PatternFill("solid", fgColor="1E3A8A")
+    for cell in ws[5]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = head_fill
+        cell.alignment = Alignment(horizontal="center", wrap_text=True)
+
+    merah_fill = PatternFill("solid", fgColor="FEE2E2")
+    for idx, s in enumerate(data.students, start=1):
+        by_subject = {g.subject: g.nilai_akhir for g in s.grades}
+        ws.append([idx, s.student_name, s.kelas] + [by_subject.get(m, "") for m in mapel] +
+                  [s.rata_rata, s.predikat, s.jumlah_merah, "Tuntas" if s.tuntas else "Perlu perhatian"])
+        row = ws.max_row
+        for col, m in enumerate(mapel, start=4):
+            val = by_subject.get(m)
+            if isinstance(val, (int, float)) and val < data.kkm:
+                ws.cell(row=row, column=col).fill = merah_fill
+
+    widths = [5, 26, 12] + [12] * len(mapel) + [11, 10, 12, 18]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[ws.cell(row=5, column=i).column_letter].width = w
+    ws.freeze_panes = "D6"
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"rekap-nilai-{(data.kelas or 'kelas').replace(' ', '-').lower()}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

@@ -11,6 +11,7 @@ import Rapor from "@/pages/Rapor";
 import KelasSaya from "@/pages/KelasSaya";
 import Mentoring from "@/pages/Mentoring";
 import Assistant from "@/pages/Assistant";
+import Rekaman from "@/pages/Rekaman";
 import Admin from "@/pages/Admin";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/kelas-saya" element={<KelasSaya />} />
         <Route path="/mentoring" element={<Mentoring />} />
         <Route path="/ai-assistant" element={<Assistant />} />
+        <Route path="/rekaman" element={<Rekaman />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/cancel" element={<PaymentCancel />} />

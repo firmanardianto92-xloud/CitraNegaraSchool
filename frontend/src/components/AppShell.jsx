@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Mic,
   Settings2,
   Users,
   Users2,
@@ -26,6 +27,7 @@ const NAV = [
   { to: "/rapor", label: "Rapor Nilai", icon: Award, testid: "nav-rapor" },
   { to: "/mentoring", label: "Mentoring", icon: Users, testid: "nav-mentoring" },
   { to: "/ai-assistant", label: "CitraBot AI", icon: Bot, testid: "nav-assistant" },
+  { to: "/rekaman", label: "Rekaman AI", icon: Mic, testid: "nav-rekaman" },
   { to: "/admin", label: "Konfigurasi", icon: Settings2, testid: "nav-admin", roles: ["admin"] },
 ];
 

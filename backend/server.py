@@ -13,14 +13,13 @@ load_dotenv(ROOT_DIR / '.env')
 
 from lib.db import client, ensure_indexes  # noqa: E402
 from routers import (  # noqa: E402
-    admin, auth, chat, documents, grades, mentoring, notes, payments, ppdb, recordings, social, users, webhook,
+    admin, auth, chat, documents, grades, mentoring, notes, payments, ppdb, social, users, webhook,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.index_task = asyncio.create_task(ensure_indexes())
-    app.state.recordings_task = asyncio.create_task(recordings.tandai_terhenti())
     yield
     client.close()
 
@@ -46,7 +45,6 @@ api_router.include_router(users.router)
 api_router.include_router(grades.router)
 api_router.include_router(social.router)
 api_router.include_router(notes.router)
-api_router.include_router(recordings.router)
 api_router.include_router(webhook.router)
 
 app.add_middleware(

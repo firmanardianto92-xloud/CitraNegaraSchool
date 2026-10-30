@@ -52,7 +52,7 @@ Grafik memakai recharts (`frontend/src/components/TrenNilai.jsx`), catatan wali 
 
 ## Koleksi Mongo
 users, documents, submissions, ppdb, invoices, mentors, mentoring_sessions, chat_messages,
-payment_transactions, levels, grades, social_posts, catatan_wali, recordings.
+payment_transactions, levels, grades, social_posts.
 
 ## Endpoint utama (semua di /api)
 - /auth/login | /auth/me | /auth/logout
@@ -68,24 +68,11 @@ payment_transactions, levels, grades, social_posts, catatan_wali, recordings.
 - /social/posts (GET, POST), PATCH /social/posts/{id} (disetujui|ditolak|terpublikasi)
 - /mentoring/mentors, /mentoring/sessions, PATCH /sessions/{id}
 - /chat (POST) & /chat/history/{session_id} — Claude Sonnet 4.5 via EMERGENT_LLM_KEY
-- /recordings (GET daftar, POST multipart `file`+`title`+`language`), /recordings/{id} (GET, DELETE), /recordings/{id}/audio (stream, mendukung Range),
-  POST /recordings/{id}/ringkasan (buat ulang ringkasan), /recordings/{id}/export?format=txt|srt
 
 ## Halaman
 /, /login, /dashboard, /materi-tugas, /kelas-saya (guru & admin), /ppdb, /pembayaran (tab Admission vs Pembayaran Sekolah),
-/kwitansi/:invoiceId, /rapor, /mentoring, /ai-assistant, /rekaman, /admin (khusus admin),
+/kwitansi/:invoiceId, /rapor, /mentoring, /ai-assistant, /admin (khusus admin),
 /payment/success, /payment/cancel
-
-## Rekaman AI (`/rekaman`, mirip Speakly)
-Semua peran yang login bisa mengunggah rekaman (mp3/m4a/wav/webm/ogg/mp4/…, maks 200 MB). File disimpan di
-`backend/uploads/recordings/` (di-gitignore), dokumen di koleksi `recordings` (`owner_id`; admin melihat semua, selain itu hanya milik sendiri → 403).
-Pemrosesan di latar belakang (`routers/recordings.py::_proses`): status `memproses` → `selesai` | `gagal`, field `tahap` untuk progres UI (di-poll tiap 3 dtk).
-1. Whisper (`whisper-1`, `OpenAISpeechToText` emergentintegrations, `verbose_json` + segmen). File > 24 MB atau format non-Whisper dikonversi ffmpeg
-   ke mp3 mono 16 kHz 32 kbps dan dipecah per 10 menit; stempel waktu digeser sesuai offset potongan.
-2. Segmen digabung jadi klip 12–35 dtk, putus di akhir kalimat / jeda ≥ 4 dtk (`lib/transkrip.py`, diuji `tests/test_transkrip.py`).
-3. Claude Sonnet 4.5 membuat JSON ringkasan: judul, ringkasan, poin_penting, tindak_lanjut, topik. Bila gagal, transkrip tetap tersimpan dan ada tombol "Buat ringkasan".
-Saat server start, rekaman yang masih `memproses` ditandai `gagal` (task latar terputus restart).
-Butuh `ffmpeg`/`ffprobe` di server untuk file besar & durasi; tanpa ffmpeg hanya file ≤ 24 MB berformat Whisper yang bisa diproses.
 
 ## Seed (backend/seed.py, idempotent, drop+insert)
 4 jenjang, 8 user, 12 dokumen (5 materi, 4 tugas, 3 dokumen resmi), 6 nilai (4 Ahmad, 2 Nadia),
